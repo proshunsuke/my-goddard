@@ -37,7 +37,7 @@ puts "ゲートノードと他のクラスタのゲートノードをつなぐ"
 for {set i 1} {$i < 4} {incr i} {
     for {set j 1} {$j < 4} {incr j} {
         puts "$gate_node($i)と$another_gate_node($j)をつなぐ"
-        $ns duplex-link $gate_node($i) $another_gate_node($j) 10mb 5ms DropTail
+        $ns duplex-link $gate_node($i) $another_gate_node($j) 10Mb 5ms DropTail
     }
 }
 
@@ -45,34 +45,34 @@ for {set i 1} {$i < 4} {incr i} {
 puts "ゲートノードとセミゲートノードをつなぐ"
 for {set i 1} {$i < 4} {incr i} {
     puts "$gate_node($i)と$semi_gate_node($i)をつなぐ"
-    $ns duplex-link $gate_node($i) $semi_gate_node($i) 7mb 10ms DropTail
+    $ns duplex-link $gate_node($i) $semi_gate_node($i) 1.6mb 10ms DropTail
 }
 
 # セミゲートノードとダイジェストノードとノーマルノードをつなぐ
 puts "セミゲートノードとダイジェストノードとノーマルノードをつなぐ"
 puts "$semi_gate_node(1)と$digest_node(1)をつなぐ"
-$ns duplex-link $semi_gate_node(1) $digest_node(1) 5mb 10ms DropTail
+$ns duplex-link $semi_gate_node(1) $digest_node(1) 1.6mb 10ms DropTail
 
 puts "$semi_gate_node(2)と$nomal_node(1)をつなぐ"
-$ns duplex-link $semi_gate_node(2) $nomal_node(1) 3mb 10ms DropTail
+$ns duplex-link $semi_gate_node(2) $nomal_node(1) 10mb 10ms DropTail
 
 puts "$semi_gate_node(2)と$digest_node(2)をつなぐ"
-$ns duplex-link $semi_gate_node(2) $digest_node(2) 5mb 10ms DropTail
+$ns duplex-link $semi_gate_node(2) $digest_node(2) 10mb 10ms DropTail
 
 puts "$digest_node(1)と$digest_node(2)をつなぐ"
-$ns duplex-link $digest_node(1) $digest_node(2) 5mb 10ms DropTail
+$ns duplex-link $digest_node(1) $digest_node(2) 1.6mb 10ms DropTail
 
 puts "$semi_gate_node(3)と$nomal_node(1)をつなぐ"
-$ns duplex-link $semi_gate_node(3) $nomal_node(1) 3mb 10ms DropTail
+$ns duplex-link $semi_gate_node(3) $nomal_node(1) 1.6mb 10ms DropTail
 
 puts "$semi_gate_node(2)と$digest_node(3)をつなぐ"
-$ns duplex-link $semi_gate_node(2) $digest_node(3) 5mb 10ms DropTail
+$ns duplex-link $semi_gate_node(2) $digest_node(3) 1.6mb 10ms DropTail
 
 puts "$digest_node(3)と$nomal_node(1)をつなぐ"
-$ns duplex-link $digest_node(3) $nomal_node(1) 4mb 10ms DropTail
+$ns duplex-link $digest_node(3) $nomal_node(1) 1.6mb 10ms DropTail
 
 # ネットワークリンクを作る（ココらへんよくわかっていない）
-set fq [[$ns link $gate_node(1) $another_gate_node(1)] queue]
+set fq [[$ns link $semi_gate_node(2) $gate_node(2)] queue]
 $fq set limit_ 20
 $fq set queue_in_bytes_ true
 $fq set mean_pktsize_ 1000
@@ -85,27 +85,25 @@ $ns namtrace-all $nf
 
 # トレースファイルの設定
 set tfile_ [open out.tr w]
-set clink [$ns link $gate_node(1) $semi_gate_node(1)]
+set clink [$ns link $semi_gate_node(2) $gate_node(2)]
 $clink trace $ns $tfile_
 
 # Setup Goddard Streaming（これだけでよいのかわからない）
-for {set i 1} {$i < 4} {incr i} {
-    set gs($i) [new GoddardStreaming $ns $gate_node($i) $semi_gate_node($i) UDP 1000 0]
-    set goddard($i) [$gs($i) getobject goddard]
-    set gplayer($i) [$gs($i) getobject gplayer]
-    $gplayer($i) set upscale_interval_ 30.0
-    set sfile($i) [open stream-udp.tr w]
-    $gplayer($i) attach $sfile($i)
-}
+ set gs(0) [new GoddardStreaming $ns $nomal_node(1) $another_gate_node(1) TCP 1000 0]
+set goddard(0) [$gs(0) getobject goddard]
+set gplayer(0) [$gs(0) getobject gplayer]
+$gplayer(0) set upscale_interval_ 30.0
+set sfile1_ [open stream-tcp.tr w]
+$gplayer(0) attach $sfile1_
 
-set gs(4) [new GoddardStreaming $ns $another_gate_node(1) $digest_node(2) UDP 1000 1]
-set goddard(4) [$gs(4) getobject goddard]
-set gplayer(4) [$gs(4) getobject gplayer]
-$gplayer(4) set upscale_interval_ 30.0
-set sfile(4) [open stream-udp.tr w]
-$gplayer(4) attach $sfile(4)
+set gs(1) [new GoddardStreaming $ns $digest_node(2) $another_gate_node(2) UDP 1000 1]
+set goddard(1) [$gs(1) getobject goddard]
+set gplayer(1) [$gs(1) getobject gplayer]
+$gplayer(1) set upscale_interval_ 30.0
+set sfile2_ [open stream-udp.tr w]
+$gplayer(1) attach $sfile2_
 
-for {set i 1} {$i < 5} {incr i} {
+for {set i 0} {$i < 2} {incr i} {
     $ns at [expr 12.5 * $i] "$goddard($i) start"
     $ns at 240.0 "$goddard($i) stop"
 }
@@ -113,7 +111,7 @@ for {set i 1} {$i < 5} {incr i} {
 $ns at 1000.0 "finish"
 
 proc finish {} {
-    global ns tfile_ sfile1, sfile2,sfile3,sfile4 f nf
+    global ns tfile_ sfile1_, sfile2_, f nf
     $ns flush-trace
 
     set awkCode {
@@ -152,18 +150,13 @@ proc finish {} {
     if { [info exists tfile_] } {
         close $tfile_
     }
-    if { [info exists sfile1] } {
-        close $sfile(1)
+    if { [info exists sfile1_] } {
+        close $sfile1_
     }
-    if { [info exists sfile2] } {
-        close $sfile(2)
+    if { [info exists sfile2_] } {
+        close $sfile2_
     }
-    if { [info exists sfile3] } {
-        close $sfile(3)
-    }
-    if { [info exists sfile4] } {
-        close $sfile(4)
-    }
+    
 
     close $f
     close $nf

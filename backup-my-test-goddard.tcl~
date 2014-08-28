@@ -51,7 +51,7 @@ $ns duplex-link $nodetest $n(1) 10Mb 5ms DropTail
 
 #Creating the network link
 $ns duplex-link $n(1) $n(2) 0.5Mb 10ms DropTail
-set fq [[$ns link $n(1) $n(2)] queue]
+set fq [[$ns link $nodetest $n(2)] queue]
 $fq set limit_ 20
 $fq set queue_in_bytes_ true
 $fq set mean_pktsize_ 1000
