@@ -111,7 +111,7 @@ for {set i 0} {$i < 2} {incr i} {
 $ns at 1000.0 "finish"
 
 proc finish {} {
-    global ns tfile_ sfile1_, sfile2_, f nf
+    global ns tfile_ sfile1_, sfile2_ f nf
     $ns flush-trace
 
     set awkCode {
@@ -156,7 +156,7 @@ proc finish {} {
     if { [info exists sfile2_] } {
         close $sfile2_
     }
-    
+
 
     close $f
     close $nf
