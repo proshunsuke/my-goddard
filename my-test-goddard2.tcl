@@ -63,6 +63,8 @@ for {set i 0} {$i < 3} {incr i} {
 }
 
 $ns duplex-link $semi_gate_node(0) $gate_node(0) 10Mb 5ms DropTail
+$ns duplex-link $semi_gate_node(1) $gate_node(1) 1.6Mb 10ms DropTail
+$ns duplex-link $semi_gate_node(1) $gate_node(1) 10Mb 5ms DropTail
 $ns duplex-link $semi_gate_node(2) $gate_node(2) 10Mb 5ms DropTail
 
 $ns duplex-link $digest_node(0) $semi_gate_node(0) 10Mb 5ms DropTail
@@ -74,9 +76,9 @@ $ns duplex-link $digest_node(2) $semi_gate_node(2) 10Mb 5ms DropTail
 $ns duplex-link $nomal_node(0) $semi_gate_node(1) 10Mb 5ms DropTail
 $ns duplex-link $nomal_node(0) $semi_gate_node(2) 10Mb 5ms DropTail
 
-#Creating the network link
-$ns duplex-link $semi_gate_node(1) $gate_node(1) 1.6Mb 10ms DropTail
-set fq [[$ns link $semi_gate_node(1) $gate_node(1)] queue]
+#Creating the network linkf
+set fq [[$ns link $semi_gate_node(0) $gate_node(0)] queue]
+# set fq [[$ns link $gate_node(1) $another_gate_node(1)] queue]
 $fq set limit_ 20
 $fq set queue_in_bytes_ true
 $fq set mean_pktsize_ 1000
@@ -86,24 +88,38 @@ set tfile_ [open out.tr w]
 set clink [$ns link $semi_gate_node(1) $gate_node(1)]
 $clink trace $ns $tfile_
 
-#Setup Goddard Streaming
-set gs(0) [new GoddardStreaming $ns $digest_node(0) $another_gate_node(0) UDP 1000 0]
-set goddard(0) [$gs(0) getobject goddard]
-set gplayer(0) [$gs(0) getobject gplayer]
-$gplayer(0) set upscale_interval_ 30.0
-set sfile1_ [open stream-udp.tr w]
-$gplayer(0) attach $sfile1_
+# Setup Goddard Streaming
 
-set gs(1) [new GoddardStreaming $ns $digest_node(1) $another_gate_node(1) UDP 1000 1]
-set goddard(1) [$gs(1) getobject goddard]
-set gplayer(1) [$gs(1) getobject gplayer]
-$gplayer(1) set upscale_interval_ 30.0
-set sfile2_ [open stream-udp.tr w]
-$gplayer(1) attach $sfile2_
+set g_count 0
+
+for {set i 0} {$i < 3} {incr i} {
+    for {set j 0} {$j < 3} {incr j} {
+        set gs($g_count) [new GoddardStreaming $ns $gate_node($i) $another_gate_node($j) UDP 1000 $g_count]
+        set goddard($g_count) [$gs($g_count) getobject goddard]
+        set gplayer($g_count) [$gs($g_count) getobject gplayer]
+        $gplayer($g_count) set upscale_interval_ 30.0
+        set sfile($g_count) [open stream-udp.tr w]
+        $gplayer($g_count) attach $sfile($g_count)
+        incr g_count
+    }
+}
+
+for {set i 0} {$i < 3} {incr i} {
+    for {set j 0} {$j < 3} {incr j} {
+        set gs($g_count) [new GoddardStreaming $ns $another_gate_node($i) $gate_node($j) UDP 1000 $g_count]
+        set goddard($g_count) [$gs($g_count) getobject goddard]
+        set gplayer($g_count) [$gs($g_count) getobject gplayer]
+        $gplayer($g_count) set upscale_interval_ 30.0
+        set sfile($g_count) [open stream-udp.tr w]
+        $gplayer($g_count) attach $sfile($g_count)
+        incr g_count
+    }
+}
 
 #Scehdule Simulation
-for {set i 0} {$i < 2} {incr i} {
-    $ns at [expr 12.5 * $i] "$goddard($i) start"
+for {set i 0} {$i < $g_count} {incr i} {
+    # $ns at [expr 12.5 * $i] "$goddard($i) start"
+    $ns at 12.5 "$goddard($i) start"
     $ns at 240.0 "$goddard($i) stop"
 }
 $ns at 1000.0 "finish"
