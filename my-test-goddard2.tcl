@@ -90,31 +90,66 @@ $clink trace $ns $tfile_
 
 # Setup Goddard Streaming
 
+# goddardのための変数宣言
+set goddard(0) ""
+set gplayer(0) ""
+set sfile(0) ""
 set g_count 0
 
+# goddardストリーミング生成関数
+proc create_goddard { l_node r_node count } {
+    global ns goddard gplayer sfile g_count
+    set gs($count) [new GoddardStreaming $ns $l_node $r_node UDP 1000 $count]
+    set goddard($count) [$gs($count) getobject goddard]
+    set gplayer($count) [$gs($count) getobject gplayer]
+    $gplayer($count) set upscale_interval_ 30.0
+    set sfile($count) [open stream-udp.tr w]
+    $gplayer($count) attach $sfile($count)
+    incr g_count
+    return
+}
+
+# 関数の中に関数を書くと値が反映されない　なぜ
+# proc create_goddard_two_way { l_node r_node count } {
+#     create_goddard $l_node $r_node $count
+#     create_goddard $r_node $l_node $count
+#     return
+# }
+
+# gate_node to another_gate_node, another_gate_node to gate_node
 for {set i 0} {$i < 3} {incr i} {
     for {set j 0} {$j < 3} {incr j} {
-        set gs($g_count) [new GoddardStreaming $ns $gate_node($i) $another_gate_node($j) UDP 1000 $g_count]
-        set goddard($g_count) [$gs($g_count) getobject goddard]
-        set gplayer($g_count) [$gs($g_count) getobject gplayer]
-        $gplayer($g_count) set upscale_interval_ 30.0
-        set sfile($g_count) [open stream-udp.tr w]
-        $gplayer($g_count) attach $sfile($g_count)
-        incr g_count
+        create_goddard $gate_node($i) $another_gate_node($j) $g_count
+        create_goddard $another_gate_node($i) $gate_node($j) $g_count
     }
 }
 
+# gate_node to semi_gate_node
 for {set i 0} {$i < 3} {incr i} {
-    for {set j 0} {$j < 3} {incr j} {
-        set gs($g_count) [new GoddardStreaming $ns $another_gate_node($i) $gate_node($j) UDP 1000 $g_count]
-        set goddard($g_count) [$gs($g_count) getobject goddard]
-        set gplayer($g_count) [$gs($g_count) getobject gplayer]
-        $gplayer($g_count) set upscale_interval_ 30.0
-        set sfile($g_count) [open stream-udp.tr w]
-        $gplayer($g_count) attach $sfile($g_count)
-        incr g_count
-    }
+    create_goddard $gate_node($i) $semi_gate_node($i) $g_count
 }
+
+# semi_gate_node to digest_node, digest_node to semi_gate_node
+for {set i 0} {$i < 3} {incr i} {
+    create_goddard $semi_gate_node($i) $digest_node($i) $g_count
+    create_goddard $digest_node($i) $semi_gate_node($i) $g_count
+}
+
+# digest_node to digest_node
+create_goddard $digest_node(0) $digest_node(1) $g_count
+create_goddard $digest_node(1) $digest_node(0) $g_count
+
+# semi_gate_node to normal_node, nomal_node to semi_gate_node
+create_goddard $semi_gate_node(1) $nomal_node(0) $g_count
+create_goddard $nomal_node(0) $semi_gate_node(1) $g_count
+create_goddard $semi_gate_node(2) $nomal_node(0) $g_count
+create_goddard $nomal_node(0) $semi_gate_node(2) $g_count
+
+# digest_node to nomal_node, nomal_node to digest_node
+create_goddard $digest_node(2) $nomal_node(0) $g_count
+create_goddard $nomal_node(0) $digest_node(2) $g_count
+
+# create_goddard $semi_gate_node($i) $digest_gate_node($j) $g_count
 
 #Scehdule Simulation
 for {set i 0} {$i < $g_count} {incr i} {
