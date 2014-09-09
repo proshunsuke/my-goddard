@@ -161,7 +161,7 @@ $ns at 1000.0 "finish"
 
 #Define a 'finish' procedure
 proc finish {} {
-    global ns tfile_ sfile1_, sfile2_ f nf
+    global ns tfile_ sfile1_ sfile2_ f nf g_count sfile
     $ns flush-trace
 
     set awkCode {
@@ -197,14 +197,20 @@ proc finish {} {
     $ns flush-trace
 
     #Close the trace file
-    if { [info exists tfile_] } {
-        close $tfile_
-    }
-    if { [info exists sfile1_] } {
-        close $sfile1_
-    }
-    if { [info exists sfile2_] } {
-        close $sfile2_
+    # if { [info exists tfile_] } {
+    #     close $tfile_
+    # }
+    # if { [info exists sfile1_] } {
+    #     close $sfile1_
+    # }
+    # if { [info exists sfile2_] } {
+    #     close $sfile2_
+    # }
+
+    for {set i 0} {$i < $g_count} {incr i} {
+        if { [info exists sfile($i)] } {
+            close $sfile($i)
+        }
     }
 
     close $f
