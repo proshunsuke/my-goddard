@@ -9,10 +9,12 @@
 
 ## ネットワークリンクを作成する
 ココらへんよく意味わかっていない・・・
+
 おそらく、パケットサイズなどの設定をしているのだろう
+
 以下のように
 
-```
+```tcl:ネットワークリンク作成.tcl
 set fq [[$ns link $semi_gate_node(0) $gate_node(0)] queue]
 $fq set limit_ 20
 $fq set queue_in_bytes_ true
@@ -26,7 +28,7 @@ goddardがここで出てくる
 
 以下のように
 
-```
+```tcl:リンク間のストリーム.tcl
 set gs(0) [new GoddardStreaming $ns $l_node $r_node UDP 1000 0]
 set goddard(0) [$gs(0) getobject goddard]
 ```
@@ -36,7 +38,7 @@ set goddard(0) [$gs(0) getobject goddard]
 その他、トレースファイルへの書き込みなどを考慮し、関数化すると以下になる。
 
 
-```goddardストリーミング生成関数
+```tcl:goddardストリーミング生成関数.tcl
 proc create_goddard { l_node r_node count } {
     global ns goddard gplayer sfile g_count
     set gs($count) [new GoddardStreaming $ns $l_node $r_node UDP 1000 $count]
