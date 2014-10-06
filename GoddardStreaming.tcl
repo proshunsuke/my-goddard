@@ -1,3 +1,5 @@
+# 研究で使われていたgoddardを使用したサンプル
+
 #NS simulator object
 set ns [new Simulator]
 set nf [open out.nam w]
