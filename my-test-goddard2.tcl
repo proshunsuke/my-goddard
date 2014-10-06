@@ -25,14 +25,26 @@ global defaultRNG
 $defaultRNG seed 15
 
 # ゲートノード
-set gate_node(0) [$ns node]
-set gate_node(1) [$ns node]
-set gate_node(2) [$ns node]
+# set gate_node(0) [$ns node]
+# set gate_node(1) [$ns node]
+# set gate_node(2) [$ns node]
+
+set gate_node_num 3
+for {set i 0} {$i < $gate_node_num} {incr i} {
+    set gate_node($i) [$ns node]
+    $gate_node($i) color green
+}
 
 # 他のクラスタのゲートノード
-set another_gate_node(0) [$ns node]
-set another_gate_node(1) [$ns node]
-set another_gate_node(2) [$ns node]
+# set another_gate_node(0) [$ns node]
+# set another_gate_node(1) [$ns node]
+# set another_gate_node(2) [$ns node]
+
+set another_gate_node_num 3
+for {set i 0} {$i < $another_gate_node_num} {incr i} {
+    set another_gate_node($i) [$ns node]
+    $another_gate_node($i) color green
+}
 
 # セミゲートノード
 set semi_gate_node(0) [$ns node]
@@ -54,10 +66,8 @@ set nf [open out.nam w]
 $ns namtrace-all $nf
 
 # ゲートノードと他のクラスタのゲートノードをつなぐ
-puts "ゲートノードと他のクラスタのゲートノードをつなぐ"
 for {set i 0} {$i < 3} {incr i} {
     for {set j 0} {$j < 3} {incr j} {
-        puts "$gate_node($i)と$another_gate_node($j)をつなぐ"
         $ns duplex-link $gate_node($i) $another_gate_node($j) 10Mb 5ms DropTail
     }
 }
@@ -148,8 +158,6 @@ create_goddard $nomal_node(0) $semi_gate_node(2) $g_count
 # digest_node to nomal_node, nomal_node to digest_node
 create_goddard $digest_node(2) $nomal_node(0) $g_count
 create_goddard $nomal_node(0) $digest_node(2) $g_count
-
-# create_goddard $semi_gate_node($i) $digest_gate_node($j) $g_count
 
 #Scehdule Simulation
 for {set i 0} {$i < $g_count} {incr i} {
