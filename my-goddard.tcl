@@ -212,17 +212,6 @@ proc finish {} {
 
     $ns flush-trace
 
-    #Close the trace file
-    # if { [info exists tfile_] } {
-    #     close $tfile_
-    # }
-    # if { [info exists sfile1_] } {
-    #     close $sfile1_
-    # }
-    # if { [info exists sfile2_] } {
-    #     close $sfile2_
-    # }
-
     for {set i 0} {$i < $g_count} {incr i} {
         if { [info exists sfile($i)] } {
             close $sfile($i)
