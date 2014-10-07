@@ -28,6 +28,7 @@ $defaultRNG seed 15
 set gate_node_num 3
 for {set i 0} {$i < $gate_node_num} {incr i} {
     set gate_node($i) [$ns node]
+    # ゲートノードの色
     $gate_node($i) color green
 }
 
@@ -36,6 +37,7 @@ for {set i 0} {$i < $gate_node_num} {incr i} {
 set another_gate_node_num 3
 for {set i 0} {$i < $another_gate_node_num} {incr i} {
     set another_gate_node($i) [$ns node]
+    # 他のクラスタノードの色
     $another_gate_node($i) color green
 }
 
@@ -44,13 +46,26 @@ set semi_gate_node(0) [$ns node]
 set semi_gate_node(1) [$ns node]
 set semi_gate_node(2) [$ns node]
 
+# セミゲートノードの色
+$semi_gate_node(0) color blue
+$semi_gate_node(1) color blue
+$semi_gate_node(2) color blue
+
 # ダイジェスト保有ノード
 set digest_node(0) [$ns node]
 set digest_node(1) [$ns node]
 set digest_node(2) [$ns node]
 
+# ダイジェスト保有ノードの色
+$digest_node(0) color yellow
+$digest_node(1) color yellow
+$digest_node(2) color yellow
+
 # ノーマルノード
 set nomal_node(0) [$ns node]
+
+# ノーマルノードの色
+$nomal_node(0) color red
 
 # namファイルの設定
 set f [open out.tr w]
