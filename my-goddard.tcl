@@ -25,10 +25,6 @@ global defaultRNG
 $defaultRNG seed 15
 
 # ゲートノード
-# set gate_node(0) [$ns node]
-# set gate_node(1) [$ns node]
-# set gate_node(2) [$ns node]
-
 set gate_node_num 3
 for {set i 0} {$i < $gate_node_num} {incr i} {
     set gate_node($i) [$ns node]
@@ -36,9 +32,6 @@ for {set i 0} {$i < $gate_node_num} {incr i} {
 }
 
 # 他のクラスタのゲートノード
-# set another_gate_node(0) [$ns node]
-# set another_gate_node(1) [$ns node]
-# set another_gate_node(2) [$ns node]
 
 set another_gate_node_num 3
 for {set i 0} {$i < $another_gate_node_num} {incr i} {
