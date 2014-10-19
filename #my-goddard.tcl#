@@ -1,3 +1,17 @@
+######################################
+# File:   test-goddard.tcl
+# Author: Jae Chung (goos@cs.wpi.edu)
+# Date:   May 2005
+#
+#  Goddard/TCP        Gplayer/TCP
+#      o                 o
+#       \               /
+#        o-------------o
+#       /    1.6Mbps    \
+#      o                 o
+#  Goddard/UDP        Gplayer/UDP
+#
+
 #NS simulator object
 set ns [new Simulator]
 
