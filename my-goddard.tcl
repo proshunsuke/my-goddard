@@ -163,8 +163,19 @@ $ns at 1000.0 "finish"
 
 #Define a 'finish' procedure
 proc finish {} {
-    global ns tfile_ sfile1_ sfile2_ f nf g_count sfile
+    global ns tfile_ sfile1_ sfile2_ f nf g_count sfile gate_node
     $ns flush-trace
+
+    # サンプル
+    # gate_node(0)からgate_node(2)まで経由したノードのIDを出力する
+    $ns compute-routes
+    set rlobject [$ns get-routelogic]
+    set src [$gate_node(0) id]
+    set dst [$gate_node(2) id]
+    while {$src != $dst} {
+        set src [$rlobject lookup $src $dst]
+        puts $src
+    }
 
     set awkCode {
         {
