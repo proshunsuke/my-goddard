@@ -59,26 +59,47 @@ $ns trace-all $f
 set nf [open out.nam w]
 $ns namtrace-all $nf
 
+# 誤り率の設定
+# 今は全ノード間で一律1%の誤り率を設定
+set lrate 0.01
+set loss_module [new ErrorModel]
+$loss_module unit pkt
+$loss_module set rate_ $lrate
+$loss_module ranvar [new RandomVariable/Uniform]
+$loss_module drop-target [new Agent/Null]
+
 # ゲートノードと他のクラスタのゲートノードをつなぐ
 for {set i 0} {$i < 3} {incr i} {
     for {set j 0} {$j < 3} {incr j} {
         $ns duplex-link $gate_node($i) $another_gate_node($j) 10Mb 5ms DropTail
+        $ns lossmodel $loss_module $gate_node($i) $another_gate_node($j)
     }
 }
 
 $ns duplex-link $semi_gate_node(0) $gate_node(0) 10Mb 5ms DropTail
+$ns lossmodel $loss_module $semi_gate_node(0) $gate_node(0)
 $ns duplex-link $semi_gate_node(1) $gate_node(1) 1.6Mb 10ms DropTail
+$ns lossmodel $loss_module $semi_gate_node(1) $gate_node(1)
 $ns duplex-link $semi_gate_node(1) $gate_node(1) 10Mb 5ms DropTail
+$ns lossmodel $loss_module $semi_gate_node(1) $gate_node(1)
 $ns duplex-link $semi_gate_node(2) $gate_node(2) 10Mb 5ms DropTail
+$ns lossmodel $loss_module $semi_gate_node(2) $gate_node(2)
 
 $ns duplex-link $digest_node(0) $semi_gate_node(0) 10Mb 5ms DropTail
+$ns lossmodel $loss_module $digest_node(0) $semi_gate_node(0)
 $ns duplex-link $digest_node(1) $semi_gate_node(1) 10Mb 5ms DropTail
+$ns lossmodel $loss_module $digest_node(1) $semi_gate_node(1)
 $ns duplex-link $digest_node(1) $digest_node(0) 10Mb 5ms DropTail
+$ns lossmodel $loss_module $digest_node(1) $digest_node(0)
 $ns duplex-link $digest_node(2) $nomal_node(0) 10Mb 5ms DropTail
+$ns lossmodel $loss_module $digest_node(2) $nomal_node(0)
 $ns duplex-link $digest_node(2) $semi_gate_node(2) 10Mb 5ms DropTail
+$ns lossmodel $loss_module $digest_node(2) $semi_gate_node(2)
 
 $ns duplex-link $nomal_node(0) $semi_gate_node(1) 10Mb 5ms DropTail
+$ns lossmodel $loss_module $nomal_node(0) $semi_gate_node(1)
 $ns duplex-link $nomal_node(0) $semi_gate_node(2) 10Mb 5ms DropTail
+$ns lossmodel $loss_module $nomal_node(0) $semi_gate_node(2)
 
 #Creating the network linkf
 set fq [[$ns link $semi_gate_node(0) $gate_node(0)] queue]
