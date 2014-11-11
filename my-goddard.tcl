@@ -61,7 +61,7 @@ $ns namtrace-all $nf
 
 # 誤り率の設定
 # 今は全ノード間で一律1%の誤り率を設定
-set lrate 0.01
+set lrate 0.1
 set loss_module [new ErrorModel]
 $loss_module unit pkt
 $loss_module set rate_ $lrate
@@ -72,34 +72,37 @@ $loss_module drop-target [new Agent/Null]
 for {set i 0} {$i < 3} {incr i} {
     for {set j 0} {$j < 3} {incr j} {
         $ns duplex-link $gate_node($i) $another_gate_node($j) 10Mb 5ms DropTail
-        $ns lossmodel $loss_module $gate_node($i) $another_gate_node($j)
+        # $ns lossmodel $loss_module $gate_node($i) $another_gate_node($j)
     }
 }
 
 $ns duplex-link $semi_gate_node(0) $gate_node(0) 10Mb 5ms DropTail
-$ns lossmodel $loss_module $semi_gate_node(0) $gate_node(0)
 $ns duplex-link $semi_gate_node(1) $gate_node(1) 1.6Mb 10ms DropTail
-$ns lossmodel $loss_module $semi_gate_node(1) $gate_node(1)
 $ns duplex-link $semi_gate_node(1) $gate_node(1) 10Mb 5ms DropTail
-$ns lossmodel $loss_module $semi_gate_node(1) $gate_node(1)
 $ns duplex-link $semi_gate_node(2) $gate_node(2) 10Mb 5ms DropTail
-$ns lossmodel $loss_module $semi_gate_node(2) $gate_node(2)
+
+# $ns lossmodel $loss_module $semi_gate_node(0) $gate_node(0)
+$ns lossmodel $loss_module $semi_gate_node(1) $gate_node(1)
+# $ns lossmodel $loss_module $semi_gate_node(1) $gate_node(1)
+# $ns lossmodel $loss_module $semi_gate_node(2) $gate_node(2)
 
 $ns duplex-link $digest_node(0) $semi_gate_node(0) 10Mb 5ms DropTail
-$ns lossmodel $loss_module $digest_node(0) $semi_gate_node(0)
 $ns duplex-link $digest_node(1) $semi_gate_node(1) 10Mb 5ms DropTail
-$ns lossmodel $loss_module $digest_node(1) $semi_gate_node(1)
 $ns duplex-link $digest_node(1) $digest_node(0) 10Mb 5ms DropTail
-$ns lossmodel $loss_module $digest_node(1) $digest_node(0)
 $ns duplex-link $digest_node(2) $nomal_node(0) 10Mb 5ms DropTail
-$ns lossmodel $loss_module $digest_node(2) $nomal_node(0)
 $ns duplex-link $digest_node(2) $semi_gate_node(2) 10Mb 5ms DropTail
-$ns lossmodel $loss_module $digest_node(2) $semi_gate_node(2)
+
+# $ns lossmodel $loss_module $digest_node(0) $semi_gate_node(0)
+# $ns lossmodel $loss_module $digest_node(1) $semi_gate_node(1)
+# $ns lossmodel $loss_module $digest_node(1) $digest_node(0)
+# $ns lossmodel $loss_module $digest_node(2) $nomal_node(0)
+# $ns lossmodel $loss_module $digest_node(2) $semi_gate_node(2)
 
 $ns duplex-link $nomal_node(0) $semi_gate_node(1) 10Mb 5ms DropTail
-$ns lossmodel $loss_module $nomal_node(0) $semi_gate_node(1)
 $ns duplex-link $nomal_node(0) $semi_gate_node(2) 10Mb 5ms DropTail
-$ns lossmodel $loss_module $nomal_node(0) $semi_gate_node(2)
+
+# $ns lossmodel $loss_module $nomal_node(0) $semi_gate_node(1)
+# $ns lossmodel $loss_module $nomal_node(0) $semi_gate_node(2)
 
 #Creating the network linkf
 set fq [[$ns link $semi_gate_node(0) $gate_node(0)] queue]
@@ -112,6 +115,19 @@ $fq set mean_pktsize_ 1000
 set tfile_ [open out.tr w]
 set clink [$ns link $semi_gate_node(1) $gate_node(1)]
 $clink trace $ns $tfile_
+
+# キューのモニタリング
+set queue_size [open queue-size.tr w]
+set qmon [$ns monitor-queue $semi_gate_node(1) $gate_node(1) [open queue-mon w] 0.05]
+[$ns link $semi_gate_node(1) $gate_node(1)] queue-sample-timeout
+proc recored { } {
+    global ns qmon queue-size semi_gate_node gate_node
+    set time 0.05
+    set now [ $ns now ]
+    qmon instvar paarivals_ pdepartures_ pdrops_
+    puts $queue_size “$now [expr $parrivals_ - $pdepartures_ - $pdrops_ ]”
+    $ns at [expr $now+$time] “record”
+}
 
 # Setup Goddard Streaming
 
@@ -145,6 +161,7 @@ proc create_goddard { l_node r_node count } {
 for {set i 0} {$i < 3} {incr i} {
     for {set j 0} {$j < 3} {incr j} {
         create_goddard $gate_node($i) $another_gate_node($j) $g_count
+
         create_goddard $another_gate_node($i) $gate_node($j) $g_count
     }
 }
@@ -188,34 +205,11 @@ proc finish {} {
     $ns flush-trace
 
     set awkCode {
-        {
-            if ($8 == 3000) {
-                if ($2 >= t_end_tcp) {
-                    tput_tcp = bytes_tcp * 8 / ($2 - t_start_tcp);
-                    print $2, tput_tcp >> "tput-tcp.tr";
-                    t_start_tcp = $2;
-                    t_end_tcp   = $2 + 2;
-                    bytes_tcp = 0;
-                }
-                if ($1 == "r") {
-                    bytes_tcp += $6;
-                }
-            }
-            else if ($8 == 3001) {
-                if ($2 >= t_end_udp) {
-                    tput_udp = bytes_udp * 8 / ($2 - t_start_udp);
-                    print $2, tput_udp >> "tput-udp.tr";
-                    t_start_udp = $2;
-                    t_end_udp   = $2 + 2;
-                    bytes_udp = 0;
-                }
-                if ($1 == "r") {
-                    bytes_udp += $6;
-                }
-            }
+        END {
+                loss_rate = $11/$9;
+                print loss_rate >> "loss-rate.tr";
         }
     }
-
 
     $ns flush-trace
 
@@ -229,9 +223,11 @@ proc finish {} {
     close $nf
 
     exec rm -f tput-tcp.tr tput-udp.tr
+    exec rm -f loss-rate.tr
     exec touch tput-tcp.tr tput-udp.tr
-    exec awk $awkCode out.tr
-    exec xgraph -bb -tk -m -x Seconds -y "Throughput (bps)" tput-tcp.tr tput-udp.tr &
+    exec touch loss-rate.tr
+    exec awk $awkCode queue-mon
+    # exec xgraph -bb -tk -m -x Seconds -y "Throughput (bps)" tput-tcp.tr tput-udp.tr &
     exec nam out.nam &
     exit 0
 }
