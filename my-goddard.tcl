@@ -278,9 +278,39 @@ proc createGoddard { l_node r_node count } {
 
 # create goddard
 
-createGoddard $rootNode $gateNode(0,0) $gCount
-createGoddard $rootNode $gateNode(0,1) $gCount
-createGoddard $rootNode $gateNode(0,2) $gCount
+proc createNomalNodeStream {} {
+    global nomalDigestNode nomalNotDigestNode rootNode clusterNum getDigestNomalNum notGetDigestNomalNum gCount digestNode digestNodeNum
+    for {set i 0} {$i < $clusterNum} {incr i} {
+        for {set j 0} {$j < $getDigestNomalNum} {incr j} {
+            createGoddard $rootNode $nomalDigestNode($i,$j) $gCount
+        }
+        for {set j 0} {$j < $notGetDigestNomalNum} {incr j} {
+            createGoddard $rootNode $nomalNotDigestNode($i,$j) $gCount
+        }
+        for {set j 0} {$j < $digestNodeNum} {incr j} {
+            createGoddard $rootNode $digestNode($i,$j) $gCount
+        }
+    }
+}
+
+proc createNomalNodeStreamOneCluster {} {
+    global nomalDigestNode nomalNotDigestNode rootNode clusterNum getDigestNomalNum notGetDigestNomalNum gCount digestNode digestNodeNum
+    for {set j 0} {$j < $getDigestNomalNum} {incr j} {
+        createGoddard $rootNode $nomalDigestNode(0,$j) $gCount
+    }
+    for {set j 0} {$j < $notGetDigestNomalNum} {incr j} {
+        createGoddard $rootNode $nomalNotDigestNode(0,$j) $gCount
+    }
+    for {set j 0} {$j < $digestNodeNum} {incr j} {
+        createGoddard $rootNode $digestNode(0,$j) $gCount
+    }
+}
+
+
+# namファイルは開けない、容量の問題で
+# 雰囲気を知るためには1つのクラスタのみでやる
+# createNomalNodeStream
+createNomalNodeStreamOneCluster
 
 
 # Scehdule Simulation
