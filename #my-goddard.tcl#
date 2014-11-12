@@ -191,6 +191,10 @@ proc connectDigestNode { selfIndexNum } {
     }
 }
 
+proc connectNomalNode {} {
+    
+}
+
 
 # ゲートノードの数実行
 for {set i 0} {$i < $gateNodeNum} {incr i} {
