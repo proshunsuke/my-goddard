@@ -245,8 +245,15 @@ for {set i 0} {$i < $clusterNum} {incr i} {
 }
 
 #Creating the network linkf
+# set fq [[$ns link $semi_gate_node(0) $gate_node(0)] queue]
+# $fq set limit_ 20
+# $fq set queue_in_bytes_ true
+# $fq set mean_pktsize_ 1000
 
 #トレースファイルの設定(out.tr)
+# set tfile_ [open out.tr w]
+# set clink [$ns link $semi_gate_node(1) $gate_node(1)]
+# $clink trace $ns $tfile_
 
 # Setup Goddard Streaming
 
@@ -254,81 +261,87 @@ for {set i 0} {$i < $clusterNum} {incr i} {
 set goddard(0) ""
 set gplayer(0) ""
 set sfile(0) ""
-set g_count 0
+set gCount 0
 
 # goddardストリーミング生成関数
-proc create_goddard { l_node r_node count } {
-    global ns goddard gplayer sfile g_count
+proc createGoddard { l_node r_node count } {
+    global ns goddard gplayer sfile gCount
     set gs($count) [new GoddardStreaming $ns $l_node $r_node UDP 1000 $count]
     set goddard($count) [$gs($count) getobject goddard]
     set gplayer($count) [$gs($count) getobject gplayer]
     $gplayer($count) set upscale_interval_ 30.0
     set sfile($count) [open stream-udp.tr w]
     $gplayer($count) attach $sfile($count)
-    incr g_count
+    incr gCount
     return
 }
 
-# create_goddard
+# create goddard
+
+createGoddard $rootNode $gateNode(0,0) $gCount
+createGoddard $rootNode $gateNode(0,1) $gCount
+createGoddard $rootNode $gateNode(0,2) $gCount
+
 
 # Scehdule Simulation
-# for {set i 0} {$i < $g_count} {incr i} {
-#     $ns at 12.5 "$goddard($i) start"
-#     $ns at 240.0 "$goddard($i) stop"
-# }
-$ns at 1000.0 "finish"
+for {set i 0} {$i < $gCount} {incr i} {
+    $ns at 0 "$goddard($i) start"
+    $ns at 100 "$goddard($i) stop"
+}
+$ns at 100.0 "finish"
 
 #Define a 'finish' procedure
 proc finish {} {
-    # $ns flush-trace
+    global ns tfile_  f nf gCount sfile
+    $ns flush-trace
 
-    # # スループットawkコード
-    # set awkCode {
-    #     {
-    #         if ($8 == 3000) {
-    #             if ($2 >= t_end_tcp) {
-    #                 tput_tcp = bytes_tcp * 8 / ($2 - t_start_tcp);
-    #                 print $2, tput_tcp >> "tput-tcp.tr";
-    #                 t_start_tcp = $2;
-    #                 t_end_tcp   = $2 + 2;
-    #                 bytes_tcp = 0;
-    #             }
-    #             if ($1 == "r") {
-    #                 bytes_tcp += $6;
-    #             }
-    #         }
-    #         else if ($8 == 3001) {
-    #             if ($2 >= t_end_udp) {
-    #                 tput_udp = bytes_udp * 8 / ($2 - t_start_udp);
-    #                 print $2, tput_udp >> "tput-udp.tr";
-    #                 t_start_udp = $2;
-    #                 t_end_udp   = $2 + 2;
-    #                 bytes_udp = 0;
-    #             }
-    #             if ($1 == "r") {
-    #                 bytes_udp += $6;
-    #             }
-    #         }
-    #     }
-    # }
+    # スループットawkコード
+    set awkCode {
+        {
+            if ($8 == 3000) {
+                if ($2 >= t_end_tcp) {
+                    tput_tcp = bytes_tcp * 8 / ($2 - t_start_tcp);
+                    print $2, tput_tcp >> "tput-tcp.tr";
+                    t_start_tcp = $2;
+                    t_end_tcp   = $2 + 2;
+                    bytes_tcp = 0;
+                }
+                if ($1 == "r") {
+                    bytes_tcp += $6;
+                }
+            }
+            else if ($8 == 3001) {
+                if ($2 >= t_end_udp) {
+                    tput_udp = bytes_udp * 8 / ($2 - t_start_udp);
+                    print $2, tput_udp >> "tput-udp.tr";
+                    t_start_udp = $2;
+                    t_end_udp   = $2 + 2;
+                    bytes_udp = 0;
+                }
+                if ($1 == "r") {
+                    bytes_udp += $6;
+                }
+            }
+        }
+    }
 
 
-    # $ns flush-trace
+    $ns flush-trace
 
-    # for {set i 0} {$i < $g_count} {incr i} {
-    #     if { [info exists sfile($i)] } {
-    #         close $sfile($i)
-    #     }
-    # }
+    for {set i 0} {$i < $gCount} {incr i} {
+        if { [info exists sfile($i)] } {
+            close $sfile($i)
+        }
+    }
 
-    # close $f
-    # close $nf
+    close $f
+    close $nf
 
-    # exec rm -f tput-tcp.tr tput-udp.tr
-    # exec touch tput-tcp.tr tput-udp.tr
-    # exec awk $awkCode out.tr
-    # exec xgraph -bb -tk -m -x Seconds -y "Throughput (bps)" tput-tcp.tr tput-udp.tr &
-     exec nam out.nam &
+    exec rm -f tput-tcp.tr tput-udp.tr
+    exec touch tput-tcp.tr tput-udp.tr
+    exec awk $awkCode out.tr
+    exec xgraph -bb -tk -m -x Seconds -y "Throughput (bps)" tput-tcp.tr tput-udp.tr &
+    exec nam out.nam &
     # exit 0
 }
 
