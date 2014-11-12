@@ -41,12 +41,13 @@ set nomalNodeNum  [expr $userNum / $clusterNum - $digestNodeNum - $gateNodeNum -
 set notGetDigestNomalNum  [expr int(ceil([expr $nomalNodeNum * $notGetDigestRate]))]
 set getDigestNomalNum [expr $nomalNodeNum - $notGetDigestNomalNum]
 
-puts $digestNodeNum
-puts $gateNodeNum
-puts $semiGateNodeNum
-puts $nomalNodeNum
-puts $notGetDigestNomalNum
-puts $getDigestNomalNum
+puts "１クラスタ当たりのノードの数"
+puts "ダイジェストノード: $digestNodeNum"
+puts "ゲートノード: $gateNodeNum"
+puts "セミゲートノード: $semiGateNodeNum"
+puts "ノーマルノード: $nomalNodeNum"
+puts "ダイジェスト未取得ノーマルノード: $notGetDigestNomalNum"
+puts "ダイジェスト取得済みノーマルノード$getDigestNomalNum"
 
 # ノードの設定
 
