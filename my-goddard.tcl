@@ -23,6 +23,7 @@ set gateCommentRate 0.1
 set semiGateBandWidthRate 0.3
 set semiGateCommentRate 0.2
 set notGetDigestRate 0.2
+set connectNomalNodeRate 0.25
 
 # ノード
 set rootNode ""
@@ -184,10 +185,49 @@ proc connectSemiGateNode { selfIndexNum } {
 }
 
 proc connectDigestNode { selfIndexNum } {
-    global ns digestNode nomalNotDigestNode clusterNum notGetDigestNomalNum
+    global ns digestNode nomalDigestNode nomalNotDigestNode clusterNum notGetDigestNomalNum getDigestNomalNum nomalNodeNum digestNodeNum
     # ダイジェスト未取得ノーマルノード
-    for {set i 0} {$i < $notGetDigestNomalNum} {incr i} {
-        $ns duplex-link $digestNode($selfIndexNum,$i) $nomalNotDigestNode($selfIndexNum,$i) 10Mb 5ms DropTail
+    for {set i 0} {$i < $digestNodeNum}  {incr i} {
+        for {set j 0} {$j < $notGetDigestNomalNum} {
+            $ns duplex-link $digestNode($selfIndexNum,$i) $nomalNotDigestNode($selfIndexNum,$j]) 10Mb 5ms DropTail
+        }
+    }
+}
+
+proc connectNomalNode { } {
+    global ns connectNomalNodeRate nomalDigestNode nomalNotDigestNode clusterNum notGetDigestNomalNum getDigestNomalNum nomalNodeNum
+    set nomalNodeList(0) ""
+
+    # とりあえずリストに全部入れる
+    for {set i 0} {$i < $nomalNodeNum} {incr i} {
+        if {$i >= $notGetDigestNomalNum} {
+            $nomalNodeList($i) = $nomalDigestNode($selfIndexNum,[expr $i-$notGetDigestNomalNum])
+        } else {
+            $nomalNodeList($i) = $nomalNotDigestNode($selfIndexNum,)
+        }
+    }
+
+    # 適当な回数リストの中身をシャッフル
+    set temp ""
+    for {set i 0} {$i < 100 } {incr i} {
+        set randomNum [expr int(($nomalNodeNum)*rand())]
+        set randomNum2 [expr int(($nomalNodeNum)*rand())]
+        set temp $nomalNodeList($randomNum1)
+        set $nomalNodeList($randomNum1) $nomalNodeList($randomNum2)
+        set $nomalNodeList($randomNum2) $temp
+    }
+
+    set connectNomalNum [expr int(ceil($nomalNodeNum*$connectNomalNodeRate))]
+
+    # ノーマルノード同士：０→１　０→２　０→３　０→４、１→２　１→３...１４→１５　１４→０　１４→１　１４→２
+    for {set i 0} {$i < $nomalNodeNum} {incr i} {
+        for {set j 0} {$j < $connectNomalNum} {incr j} {
+            if { [expr $i+$j] >= $nomalNodeNum } {
+                $ns duplex-link $nomalNodeList($i) $nomalNodeList([expr $i+$j-$nomalNodeNum]) 10Mb 5ms DropTail
+            } else {
+                $ns duplex-link $nomalNodeList($i) $nomalNodeList([expr $i+$j]) 10Mb 5ms DropTail
+            }
+        }
     }
 }
 
@@ -202,6 +242,7 @@ for {set i 0} {$i < $clusterNum} {incr i} {
     connectGateNodeInCluster $i
     connectSemiGateNode $i
     connectDigestNode $i
+    connectNomalNode $i
 }
 
 #Creating the network linkf

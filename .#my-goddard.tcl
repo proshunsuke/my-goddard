@@ -1,1 +1,0 @@
-shunsuke@shunsuke-ThinkPad-Edge-E430.16792:1415717594
