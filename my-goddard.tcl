@@ -124,10 +124,15 @@ proc nomalNodeInit {} {
 
 # ノード間の接続
 
-# クラスタ内部
 # 帯域幅の設定する必要あり
 proc connectGateNodeInCluster { selfClusterNum } {
     global ns gateNodeNum gateNode semiGateNode clusterNum rootNode
+
+    # 配信者ノード
+    for {set i 0} {$i < $gateNodeNum} {incr i} {
+        $ns duplex-link $gateNode($selfClusterNum,$i) $rootNode 10Mb 5ms DropTail
+    }
+
     # ゲートノード同士：１→２　２→３　３→１
     for {set i 0} {$i < $gateNodeNum} {incr i} {
         if { [expr $i+1] >= $gateNodeNum } {
@@ -136,14 +141,10 @@ proc connectGateNodeInCluster { selfClusterNum } {
             $ns duplex-link $gateNode($selfClusterNum,$i) $gateNode($selfClusterNum,[expr $i+1]) 10Mb 5ms DropTail
         }
     }
+
     # ゲートノードとセミゲートノード
     for {set i 0} {$i < $gateNodeNum} {incr i} {
         $ns duplex-link $gateNode($selfClusterNum,$i) $semiGateNode($selfClusterNum,$i) 10Mb 5ms DropTail
-    }
-
-    # 配信者ノード
-    for {set i 0} {$i < $gateNodeNum} {incr i} {
-        $ns duplex-link $gateNode($selfClusterNum,$i) $rootNode 10Mb 5ms DropTail
     }
 }
 
@@ -223,19 +224,7 @@ proc connectNomalNode { selfIndexNum } {
     }
 }
 
-#Creating the network linkf
-# set fq [[$ns link $semi_gate_node(0) $gate_node(0)] queue]
-# $fq set limit_ 20
-# $fq set queue_in_bytes_ true
-# $fq set mean_pktsize_ 1000
-
-#トレースファイルの設定(out.tr)
-# set tfile_ [open out.tr w]
-# set clink [$ns link $semi_gate_node(1) $gate_node(1)]
-# $clink trace $ns $tfile_
-
 # Setup Goddard Streaming
-
 
 # goddardストリーミング生成関数
 proc createGoddard { l_node r_node count } {
@@ -282,7 +271,7 @@ proc createNomalNodeStreamOneCluster {} {
 
 #Define a 'finish' procedure
 proc finish {} {
-    global ns tfile_  f nf gCount sfile
+    global ns f gCount sfile
     $ns flush-trace
 
     for {set i 0} {$i < $gCount} {incr i} {
@@ -292,7 +281,6 @@ proc finish {} {
     }
 
     close $f
-    close $nf
 
     exit 0
 }
