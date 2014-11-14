@@ -309,8 +309,8 @@ proc createNomalNodeStreamOneCluster {} {
 
 # namファイルは開けない、容量の問題で
 # 雰囲気を知るためには1つのクラスタのみでやる
-# createNomalNodeStream
-createNomalNodeStreamOneCluster
+createNomalNodeStream
+# createNomalNodeStreamOneCluster
 
 
 # Scehdule Simulation
@@ -325,39 +325,6 @@ proc finish {} {
     global ns tfile_  f nf gCount sfile
     $ns flush-trace
 
-    # スループットawkコード
-    set awkCode {
-        {
-            if ($8 == 3000) {
-                if ($2 >= t_end_tcp) {
-                    tput_tcp = bytes_tcp * 8 / ($2 - t_start_tcp);
-                    print $2, tput_tcp >> "tput-tcp.tr";
-                    t_start_tcp = $2;
-                    t_end_tcp   = $2 + 2;
-                    bytes_tcp = 0;
-                }
-                if ($1 == "r") {
-                    bytes_tcp += $6;
-                }
-            }
-            else if ($8 == 3001) {
-                if ($2 >= t_end_udp) {
-                    tput_udp = bytes_udp * 8 / ($2 - t_start_udp);
-                    print $2, tput_udp >> "tput-udp.tr";
-                    t_start_udp = $2;
-                    t_end_udp   = $2 + 2;
-                    bytes_udp = 0;
-                }
-                if ($1 == "r") {
-                    bytes_udp += $6;
-                }
-            }
-        }
-    }
-
-
-    $ns flush-trace
-
     for {set i 0} {$i < $gCount} {incr i} {
         if { [info exists sfile($i)] } {
             close $sfile($i)
@@ -367,12 +334,7 @@ proc finish {} {
     close $f
     close $nf
 
-    exec rm -f tput-tcp.tr tput-udp.tr
-    exec touch tput-tcp.tr tput-udp.tr
-    exec awk $awkCode out.tr
-    exec xgraph -bb -tk -m -x Seconds -y "Throughput (bps)" tput-tcp.tr tput-udp.tr &
-    exec nam out.nam &
-    # exit 0
+    exit 0
 }
 
 $ns run
