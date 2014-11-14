@@ -49,6 +49,13 @@ puts "ノーマルノード: $nomalNodeNum"
 puts "ダイジェスト未取得ノーマルノード: $notGetDigestNomalNum"
 puts "ダイジェスト取得済みノーマルノード$getDigestNomalNum"
 
+# goddardのための変数宣言
+set goddard(0) ""
+set gplayer(0) ""
+set sfile(0) ""
+set gCount 0
+
+# 処理のためのメソッド定義
 # ノードの設定
 
 proc rootNodeInit {} {
@@ -114,20 +121,6 @@ proc nomalNodeInit {} {
     }
     return
 }
-
-rootNodeInit
-digestNodeInit
-gateNodeInit
-semiGateNodeInit
-nomalNodeInit
-
-#puts [parray semiGateNode]
-
-# namファイルの設定
-set f [open out.tr w]
-$ns trace-all $f
-set nf [open out.nam w]
-$ns namtrace-all $nf
 
 # ノード間の接続
 
@@ -230,20 +223,6 @@ proc connectNomalNode { selfIndexNum } {
     }
 }
 
-
-# ゲートノードの数実行
-for {set i 0} {$i < $gateNodeNum} {incr i} {
-    connectGateNodeOutside $i
-}
-
-# クラスタの数実行
-for {set i 0} {$i < $clusterNum} {incr i} {
-    connectGateNodeInCluster $i
-    connectSemiGateNode $i
-    connectDigestNode $i
-    connectNomalNode $i
-}
-
 #Creating the network linkf
 # set fq [[$ns link $semi_gate_node(0) $gate_node(0)] queue]
 # $fq set limit_ 20
@@ -257,11 +236,6 @@ for {set i 0} {$i < $clusterNum} {incr i} {
 
 # Setup Goddard Streaming
 
-# goddardのための変数宣言
-set goddard(0) ""
-set gplayer(0) ""
-set sfile(0) ""
-set gCount 0
 
 # goddardストリーミング生成関数
 proc createGoddard { l_node r_node count } {
@@ -306,20 +280,6 @@ proc createNomalNodeStreamOneCluster {} {
     }
 }
 
-
-# namファイルは開けない、容量の問題で
-# 雰囲気を知るためには1つのクラスタのみでやる
-createNomalNodeStream
-# createNomalNodeStreamOneCluster
-
-
-# Scehdule Simulation
-for {set i 0} {$i < $gCount} {incr i} {
-    $ns at 0 "$goddard($i) start"
-    $ns at 100 "$goddard($i) stop"
-}
-$ns at 100.0 "finish"
-
 #Define a 'finish' procedure
 proc finish {} {
     global ns tfile_  f nf gCount sfile
@@ -336,5 +296,44 @@ proc finish {} {
 
     exit 0
 }
+
+## 処理開始
+
+rootNodeInit
+digestNodeInit
+gateNodeInit
+semiGateNodeInit
+nomalNodeInit
+
+# namファイルの設定
+set f [open out.tr w]
+$ns trace-all $f
+set nf [open out.nam w]
+$ns namtrace-all $nf
+
+# ゲートノードの数実行
+for {set i 0} {$i < $gateNodeNum} {incr i} {
+    connectGateNodeOutside $i
+}
+
+# クラスタの数実行
+for {set i 0} {$i < $clusterNum} {incr i} {
+    connectGateNodeInCluster $i
+    connectSemiGateNode $i
+    connectDigestNode $i
+    connectNomalNode $i
+}
+
+# namファイルは開けない、容量の問題で
+# 雰囲気を知るためには1つのクラスタのみでやる（時間を１０にしたらその必要がなくなった）
+createNomalNodeStream
+#createNomalNodeStreamOneCluster
+
+# Scehdule Simulation
+for {set i 0} {$i < $gCount} {incr i} {
+    $ns at 0 "$goddard($i) start"
+    $ns at 10 "$goddard($i) stop"
+}
+$ns at 10.0 "finish"
 
 $ns run
