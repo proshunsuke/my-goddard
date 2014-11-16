@@ -41,13 +41,42 @@ set nomalNodeNum  [expr $userNum / $clusterNum - $digestNodeNum - $gateNodeNum -
 set notGetDigestNomalNum  [expr int(ceil([expr $nomalNodeNum * $notGetDigestRate]))]
 set getDigestNomalNum [expr $nomalNodeNum - $notGetDigestNomalNum]
 
-puts "１クラスタ当たりのノードの数"
-puts "ダイジェストノード: $digestNodeNum"
-puts "ゲートノード: $gateNodeNum"
-puts "セミゲートノード: $semiGateNodeNum"
-puts "ノーマルノード: $nomalNodeNum"
-puts "ダイジェスト未取得ノーマルノード: $notGetDigestNomalNum"
-puts "ダイジェスト取得済みノーマルノード$getDigestNomalNum"
+# ノードリスト
+set nodeList(0) ""
+
+# ノードの帯域幅(Mbps)
+set bandwidthList(0) ""
+
+# ノードのコメント数
+set commentList(0) ""
+
+# 帯域幅割合
+array set bandwidthRatio {
+    3000 30
+    1500 3
+    1024 56
+    768 13
+    640 3
+    512 4
+    448 25
+    384 17
+    320 29
+    256 20
+}
+
+# コメント数割合
+array set commentRatio {
+    25 2
+    22 2
+    20 3
+    17 5
+    15 22
+    12 28
+    10 33
+    7 36
+    5 36
+    2 33
+}
 
 # goddardのための変数宣言
 set goddard(0) ""
@@ -57,6 +86,52 @@ set gCount 0
 
 # 処理のためのメソッド定義
 # ノードの設定
+
+proc nodeListInit {} {
+    global ns userNum nodeList
+    for {set i 0} {$i < $userNum} {incr i} {
+        set nodeList($i) [$ns node]
+    }
+}
+
+
+proc bandwidthListInit {} {
+    global ns userNum bandwidthRatio bandwidthList nodeList
+    set j 0
+    foreach {index val} [array get bandwidthRatio] {
+        for {set i 0} {$i < $val} {incr i} {
+            set bandwidthList($nodeList($j)) $index
+            incr j
+        }
+    }
+}
+
+proc commentListInit {} {
+    global ns userNum commentRatio commentList nodeList
+    set j 0
+    foreach {index val} [array get commentRatio] {
+        for {set i 0} {$i < $val} {incr i} {
+            set commentList($nodeList($j)) $index
+            incr j
+        }
+    }
+}
+
+proc nodeListShuffle {} {
+    global userNum nodeList
+    puts [expr $userNum*5]
+    puts [expr int($userNum*rand())]
+    for {set i 0} {$i < [expr $userNum*5]} {incr i} {
+        set temp1 [expr int($userNum*rand())]
+        set temp2 [expr int($userNum*rand())]
+        set nodeList($temp1) $temp2
+        set nodeList($temp2) $temp1
+    }
+}
+nodeListInit
+commentListInit
+nodeListShuffle
+bandwidthListInit
 
 proc rootNodeInit {} {
     global ns rootNode
@@ -130,21 +205,21 @@ proc connectGateNodeInCluster { selfClusterNum } {
 
     # 配信者ノード
     for {set i 0} {$i < $gateNodeNum} {incr i} {
-        $ns duplex-link $gateNode($selfClusterNum,$i) $rootNode 10Mb 5ms DropTail
+        $ns duplex-link $gateNode($selfClusterNum,$i) $rootNode 8Mb 5ms DropTail
     }
 
     # ゲートノード同士：１→２　２→３　３→１
     for {set i 0} {$i < $gateNodeNum} {incr i} {
         if { [expr $i+1] >= $gateNodeNum } {
-            $ns duplex-link $gateNode($selfClusterNum,$i) $gateNode($selfClusterNum,[expr $i+1-$gateNodeNum]) 10Mb 5ms DropTail
+            $ns duplex-link $gateNode($selfClusterNum,$i) $gateNode($selfClusterNum,[expr $i+1-$gateNodeNum]) 1Mb 5ms DropTail
         } else {
-            $ns duplex-link $gateNode($selfClusterNum,$i) $gateNode($selfClusterNum,[expr $i+1]) 10Mb 5ms DropTail
+            $ns duplex-link $gateNode($selfClusterNum,$i) $gateNode($selfClusterNum,[expr $i+1]) 1Mb 5ms DropTail
         }
     }
 
     # ゲートノードとセミゲートノード
     for {set i 0} {$i < $gateNodeNum} {incr i} {
-        $ns duplex-link $gateNode($selfClusterNum,$i) $semiGateNode($selfClusterNum,$i) 10Mb 5ms DropTail
+        $ns duplex-link $gateNode($selfClusterNum,$i) $semiGateNode($selfClusterNum,$i) 1Mb 5ms DropTail
     }
 }
 
@@ -286,6 +361,14 @@ proc finish {} {
 }
 
 ## 処理開始
+
+puts "１クラスタ当たりのノードの数"
+puts "ダイジェストノード: $digestNodeNum"
+puts "ゲートノード: $gateNodeNum"
+puts "セミゲートノード: $semiGateNodeNum"
+puts "ノーマルノード: $nomalNodeNum"
+puts "ダイジェスト未取得ノーマルノード: $notGetDigestNomalNum"
+puts "ダイジェスト取得済みノーマルノード$getDigestNomalNum"
 
 rootNodeInit
 digestNodeInit
