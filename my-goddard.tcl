@@ -12,11 +12,11 @@ $defaultRNG seed 15
 
 # パラメータ設定
 
-# 入力値
+# 入力値(ユーザ数は必ず200の倍数)
 set userNum 200
+set clusterNum 7
 
 # 実験用パラメータ
-set clusterNum 7
 set digestUserRate 0.2
 set gateBandWidthRate 0.3
 set gateCommentRate 0.1
@@ -59,8 +59,8 @@ set sortedBandwidthList(0) ""
 
 # 帯域幅割合
 array set bandwidthRatio {
-    3 30
-    1 3
+    3.000 30
+    1.500 3
     1.024 56
     0.768 13
     0.640 3
@@ -112,6 +112,21 @@ proc copy {ary1 ary2} {
 
 # ノードの設定
 
+proc ratioSetting {} {
+    global bandwidthRatio commentRatio clusterNum userNum
+
+    set basicRatio [expr $userNum/200]
+    foreach {index val} [array get bandwidthRatio] {
+        set tempBandwidthRatio($index) [expr $val*$basicRatio]
+    }
+    copy tempBandwidthRatio bandwidthRatio
+
+    foreach {index val} [array get commentRatio] {
+        set tempCommentRatio($index) [expr $val*$basicRatio]
+    }
+    copy tempCommentRatio commentRatio
+}
+
 proc nodeListInit {} {
     global ns userNum nodeList nodeListForBandwidth
     for {set i 0} {$i < $userNum} {incr i} {
@@ -119,7 +134,6 @@ proc nodeListInit {} {
         set nodeListForBandwidth($i) $nodeList($i)
     }
 }
-
 
 proc bandwidthListInit {} {
     global ns userNum bandwidthRatio bandwidthList nodeListForBandwidth
@@ -259,7 +273,7 @@ proc nomalNodeInit {} {
             set nomalNotDigestNode($i,$j) $sortedBandwidthList($k)
 
             # ダイジェスト未取得ノーマルノードの色
-            $nomalNotDigestNode($i,$j) color black
+            $nomalNotDigestNode($i,$j) color pink
 
             incr k
         }
@@ -270,10 +284,22 @@ proc nomalNodeInit {} {
             set nomalDigestNode($i,$j) $sortedBandwidthList($k)
 
             # ダイジェスト取得ノーマルノードの色
-            $nomalDigestNode($i,$j) color gray
+            $nomalDigestNode($i,$j) color orange
 
             incr k
         }
+    }
+
+    # 残りのノードはu全てダイジェスト取得済みノーマルノードへ
+    set limit [expr [array size sortedBandwidthList]-$k]
+
+    for {set i 0} {$i < $limit} {incr i} {
+        set nomalDigestNode($i,$getDigestNomalNum) $sortedBandwidthList($k)
+
+        # ダイジェスト取得ノーマルノードの色
+        $nomalDigestNode($i,$getDigestNomalNum) color orange
+
+        incr k
     }
 
     return
@@ -373,9 +399,13 @@ proc connectDigestNode { selfIndexNum } {
 
 proc connectNomalNode { selfIndexNum } {
     global ns connectNomalNodeRate nomalDigestNode nomalNotDigestNode clusterNum notGetDigestNomalNum getDigestNomalNum nomalNodeNum
+
     # とりあえずリストに全部入れる
-    for {set i 0} {$i < $nomalNodeNum} {incr i} {
+    for {set i 0} {$i < [expr $nomalNodeNum+1]} {incr i} {
         if {$i >= $notGetDigestNomalNum} {
+            if {[array get nomalDigestNode $selfIndexNum,[expr $i-$notGetDigestNomalNum]] == []} {
+                continue
+            }
             set nomalNodeList($i) $nomalDigestNode($selfIndexNum,[expr $i-$notGetDigestNomalNum])
         } else {
             set nomalNodeList($i) $nomalNotDigestNode($selfIndexNum,$i)
@@ -395,9 +425,12 @@ proc connectNomalNode { selfIndexNum } {
     set connectNomalNum [expr int(ceil($nomalNodeNum*$connectNomalNodeRate))]
 
     # ノーマルノード同士：０→１　０→２　０→３　０→４、１→２　１→３...１４→１５　１４→０　１４→１　１４→２
-    for {set i 0} {$i < $nomalNodeNum} {incr i} {
+    for {set i 0} {$i < [expr $nomalNodeNum+1]} {incr i} {
         for {set j 0} {$j < $connectNomalNum} {incr j} {
             if { [expr $i+$j+1] >= $nomalNodeNum } {
+                if {[array get nomalNodeList $i] == []} {
+                    continue
+                }
                 set bandwidth [returnLowBandwidth $nomalNodeList($i) $nomalNodeList([expr $i+$j+1-$nomalNodeNum])]
                 $ns duplex-link $nomalNodeList($i) $nomalNodeList([expr $i+$j+1-$nomalNodeNum]) [expr $bandwidth]Mb 5ms DropTail
             } else {
@@ -479,6 +512,8 @@ puts "ノーマルノード: \t\t\t$nomalNodeNum"
 puts "ダイジェスト未取得ノーマルノード: \t$notGetDigestNomalNum"
 puts "ダイジェスト取得済みノーマルノード: \t$getDigestNomalNum"
 
+ratioSetting
+
 nodeListInit
 commentListInit
 nodeListForBandwidthShuffle
@@ -497,7 +532,6 @@ puts "ゲートノード: \t\t\t\t[array size gateNode]"
 puts "セミゲートノード: \t\t\t[array size semiGateNode]"
 puts "ダイジェスト未取得ノーマルノード: \t[array size nomalNotDigestNode]"
 puts "ダイジェスト取得済みノーマルノード: \t[array size nomalDigestNode]"
-
 
 # namファイルの設定
 set f [open out.tr w]
