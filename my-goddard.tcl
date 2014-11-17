@@ -328,24 +328,24 @@ proc connectGateNodeInCluster { selfClusterNum } {
 
     # 配信者ノード
     for {set i 0} {$i < $gateNodeNum} {incr i} {
-        $ns duplex-link $gateNode($selfClusterNum,$i) $rootNode $bandwidthList($gateNode($selfClusterNum,$i))Mb 5ms DropTail
+        $ns duplex-link $gateNode($selfClusterNum,$i) $rootNode $bandwidthList($gateNode($selfClusterNum,$i))Mb 500ms DropTail
     }
 
     # ゲートノード同士：１→２　２→３　３→１
     for {set i 0} {$i < $gateNodeNum} {incr i} {
         if { [expr $i+1] >= $gateNodeNum } {
             set bandwidth [returnLowBandwidth $gateNode($selfClusterNum,$i) $gateNode($selfClusterNum,[expr $i+1-$gateNodeNum])]
-            $ns duplex-link $gateNode($selfClusterNum,$i) $gateNode($selfClusterNum,[expr $i+1-$gateNodeNum]) [expr $bandwidth]Mb 5ms DropTail
+            $ns duplex-link $gateNode($selfClusterNum,$i) $gateNode($selfClusterNum,[expr $i+1-$gateNodeNum]) [expr $bandwidth]Mb 100ms DropTail
         } else {
             set bandwidth [returnLowBandwidth $gateNode($selfClusterNum,$i) $gateNode($selfClusterNum,[expr $i+1])]
-            $ns duplex-link $gateNode($selfClusterNum,$i) $gateNode($selfClusterNum,[expr $i+1]) [expr $bandwidth]Mb 5ms DropTail
+            $ns duplex-link $gateNode($selfClusterNum,$i) $gateNode($selfClusterNum,[expr $i+1]) [expr $bandwidth]Mb 100ms DropTail
         }
     }
 
     # ゲートノードとセミゲートノード
     for {set i 0} {$i < $gateNodeNum} {incr i} {
         set bandwidth [returnLowBandwidth $gateNode($selfClusterNum,$i) $semiGateNode($selfClusterNum,$i)]
-        $ns duplex-link $gateNode($selfClusterNum,$i) $semiGateNode($selfClusterNum,$i) [expr $bandwidth]Mb 5ms DropTail
+        $ns duplex-link $gateNode($selfClusterNum,$i) $semiGateNode($selfClusterNum,$i) [expr $bandwidth]Mb 100ms DropTail
     }
 }
 
@@ -355,10 +355,10 @@ proc connectGateNodeOutside { selfIndexNum } {
     for {set i 0} {$i < $clusterNum} {incr i} {
         if { [expr $i+1] >= $clusterNum } {
             set bandwidth [returnLowBandwidth $gateNode($i,$selfIndexNum) $gateNode([expr $i+1-$clusterNum],$selfIndexNum)]
-            $ns duplex-link $gateNode($i,$selfIndexNum) $gateNode([expr $i+1-$clusterNum],$selfIndexNum) [expr $bandwidth]Mb 5ms DropTail
+            $ns duplex-link $gateNode($i,$selfIndexNum) $gateNode([expr $i+1-$clusterNum],$selfIndexNum) [expr $bandwidth]Mb 100ms DropTail
         } else {
             set bandwidth [returnLowBandwidth $gateNode($i,$selfIndexNum) $gateNode([expr $i+1],$selfIndexNum)]
-            $ns duplex-link $gateNode($i,$selfIndexNum) $gateNode([expr $i+1],$selfIndexNum) [expr $bandwidth]Mb 5ms DropTail
+            $ns duplex-link $gateNode($i,$selfIndexNum) $gateNode([expr $i+1],$selfIndexNum) [expr $bandwidth]Mb 100ms DropTail
         }
     }
 }
@@ -368,9 +368,9 @@ proc connectSemiGateNode { selfIndexNum } {
     # ダイジェストノード
     for {set i 0} {$i < $semiGateNodeNum}  {incr i} {
         set bandwidth [returnLowBandwidth $semiGateNode($selfIndexNum,$i) $digestNode($selfIndexNum,[expr $i*2])]
-        $ns duplex-link $semiGateNode($selfIndexNum,$i) $digestNode($selfIndexNum,[expr $i*2]) [expr $bandwidth]Mb 5ms DropTail
+        $ns duplex-link $semiGateNode($selfIndexNum,$i) $digestNode($selfIndexNum,[expr $i*2]) [expr $bandwidth]Mb 100ms DropTail
         set bandwidth [returnLowBandwidth $semiGateNode($selfIndexNum,$i) $digestNode($selfIndexNum,[expr $i*2+1])]
-        $ns duplex-link $semiGateNode($selfIndexNum,$i) $digestNode($selfIndexNum,[expr $i*2+1]) [expr $bandwidth]Mb 5ms DropTail
+        $ns duplex-link $semiGateNode($selfIndexNum,$i) $digestNode($selfIndexNum,[expr $i*2+1]) [expr $bandwidth]Mb 100ms DropTail
     }
 
     # ノーマルノード
@@ -378,10 +378,10 @@ proc connectSemiGateNode { selfIndexNum } {
         set digestBorderNum [expr int(($notGetDigestNomalNum+$getDigestNomalNum)*rand())]
         if {$digestBorderNum >= $notGetDigestNomalNum} {
             set bandwidth [returnLowBandwidth $semiGateNode($selfIndexNum,$i) $nomalDigestNode($selfIndexNum,[expr $digestBorderNum-$notGetDigestNomalNum])]
-            $ns duplex-link $semiGateNode($selfIndexNum,$i) $nomalDigestNode($selfIndexNum,[expr $digestBorderNum-$notGetDigestNomalNum]) [expr $bandwidth]Mb 5ms DropTail
+            $ns duplex-link $semiGateNode($selfIndexNum,$i) $nomalDigestNode($selfIndexNum,[expr $digestBorderNum-$notGetDigestNomalNum]) [expr $bandwidth]Mb 100ms DropTail
         } else {
             set bandwidth [returnLowBandwidth $semiGateNode($selfIndexNum,$i) $nomalNotDigestNode($selfIndexNum,$digestBorderNum)]
-            $ns duplex-link $semiGateNode($selfIndexNum,$i) $nomalNotDigestNode($selfIndexNum,$digestBorderNum) [expr $bandwidth]Mb 5ms DropTail
+            $ns duplex-link $semiGateNode($selfIndexNum,$i) $nomalNotDigestNode($selfIndexNum,$digestBorderNum) [expr $bandwidth]Mb 100ms DropTail
         }
     }
 }
@@ -392,7 +392,7 @@ proc connectDigestNode { selfIndexNum } {
     for {set i 0} {$i < $digestNodeNum}  {incr i} {
         for {set j 0} {$j < $notGetDigestNomalNum} {incr j} {
             set bandwidth [returnLowBandwidth $digestNode($selfIndexNum,$i) $nomalNotDigestNode($selfIndexNum,$j)]
-            $ns duplex-link $digestNode($selfIndexNum,$i) $nomalNotDigestNode($selfIndexNum,$j) [expr $bandwidth]Mb 5ms DropTail
+            $ns duplex-link $digestNode($selfIndexNum,$i) $nomalNotDigestNode($selfIndexNum,$j) [expr $bandwidth]Mb 100ms DropTail
         }
     }
 }
@@ -432,10 +432,10 @@ proc connectNomalNode { selfIndexNum } {
                     continue
                 }
                 set bandwidth [returnLowBandwidth $nomalNodeList($i) $nomalNodeList([expr $i+$j+1-$nomalNodeNum])]
-                $ns duplex-link $nomalNodeList($i) $nomalNodeList([expr $i+$j+1-$nomalNodeNum]) [expr $bandwidth]Mb 5ms DropTail
+                $ns duplex-link $nomalNodeList($i) $nomalNodeList([expr $i+$j+1-$nomalNodeNum]) [expr $bandwidth]Mb 100ms DropTail
             } else {
                 set bandwidth [returnLowBandwidth $nomalNodeList($i) $nomalNodeList([expr $i+$j+1])]
-                $ns duplex-link $nomalNodeList($i) $nomalNodeList([expr $i+$j+1]) [expr $bandwidth]Mb 5ms DropTail
+                $ns duplex-link $nomalNodeList($i) $nomalNodeList([expr $i+$j+1]) [expr $bandwidth]Mb 100ms DropTail
             }
         }
     }
@@ -491,6 +491,35 @@ proc finish {} {
     global ns f gCount sfile
     $ns flush-trace
 
+    set awkCode {
+        {
+            if ($8 == 3000) {
+                if ($2 >= t_end_tcp) {
+                    tput_tcp = bytes_tcp * 8 / ($2 - t_start_tcp)/1000;
+                    print $2, tput_tcp >> "tput-tcp.tr";
+                    t_start_tcp = $2;
+                    t_end_tcp   = $2 + 2;
+                    bytes_tcp = 0;
+                }
+                if ($1 == "r") {
+                    bytes_tcp += $6;
+                }
+            }
+            else if ($8 == 3001) {
+                if ($2 >= t_end_udp) {
+                    tput_udp = bytes_udp * 8 / ($2 - t_start_udp)/1000;
+                    print $2, tput_udp >> "tput-udp.tr";
+                    t_start_udp = $2;
+                    t_end_udp   = $2 + 2;
+                    bytes_udp = 0;
+                }
+                if ($1 == "r") {
+                    bytes_udp += $6;
+                }
+            }
+        }
+    }
+
     for {set i 0} {$i < $gCount} {incr i} {
         if { [info exists sfile($i)] } {
             close $sfile($i)
@@ -498,6 +527,11 @@ proc finish {} {
     }
 
     close $f
+
+    exec rm -f tput-tcp.tr tput-udp.tr
+    exec touch tput-tcp.tr tput-udp.tr
+    exec awk $awkCode out.tr
+    exec xgraph -bb -tk -m -x Seconds -y "Throughput (kbps)" tput-tcp.tr tput-udp.tr &
 
     exit 0
 }
@@ -563,8 +597,8 @@ createNomalNodeStream
 # Scehdule Simulation
 for {set i 0} {$i < $gCount} {incr i} {
     $ns at 0 "$goddard($i) start"
-    $ns at 10 "$goddard($i) stop"
+    $ns at 240.0 "$goddard($i) stop"
 }
-$ns at 10.0 "finish"
+$ns at 1000.0 "finish"
 
 $ns run
