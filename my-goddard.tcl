@@ -369,6 +369,9 @@ proc connectSemiGateNode { selfIndexNum } {
     for {set i 0} {$i < $semiGateNodeNum}  {incr i} {
         set bandwidth [returnLowBandwidth $semiGateNode($selfIndexNum,$i) $digestNode($selfIndexNum,[expr $i*2])]
         $ns duplex-link $semiGateNode($selfIndexNum,$i) $digestNode($selfIndexNum,[expr $i*2]) [expr $bandwidth]Mb 100ms DropTail
+        if {[array get digestNode $selfIndexNum,[expr $i*2+1]] == []} {
+                    continue
+        }
         set bandwidth [returnLowBandwidth $semiGateNode($selfIndexNum,$i) $digestNode($selfIndexNum,[expr $i*2+1])]
         $ns duplex-link $semiGateNode($selfIndexNum,$i) $digestNode($selfIndexNum,[expr $i*2+1]) [expr $bandwidth]Mb 100ms DropTail
     }
@@ -599,6 +602,6 @@ for {set i 0} {$i < $gCount} {incr i} {
     $ns at 0 "$goddard($i) start"
     $ns at 240.0 "$goddard($i) stop"
 }
-$ns at 1000.0 "finish"
+$ns at 250.0 "finish"
 
 $ns run
