@@ -13,8 +13,10 @@ $defaultRNG seed 15
 # パラメータ設定
 
 # 入力値(ユーザ数は必ず200の倍数)
-set userNum 200
-set clusterNum 7
+set userNum [lindex $argv 0]
+
+# ユーザ数に応じて変化
+set clusterNum 0
 
 # 実験用パラメータ
 set digestUserRate 0
@@ -34,12 +36,12 @@ set nomalDigestNode(0,0) ""
 set nomalNotDigestNode(0,0) ""
 
 # ノードの数
-set digestNodeNum [expr int(ceil([expr $userNum / $clusterNum * $digestUserRate]))]
-set gateNodeNum [expr int(ceil([expr $userNum / $clusterNum * $gateCommentRate]))]
-set semiGateNodeNum [expr int(ceil([expr $userNum / $clusterNum * ($semiGateCommentRate - $gateCommentRate)]))]
-set nomalNodeNum  [expr $userNum / $clusterNum - $digestNodeNum - $gateNodeNum - $semiGateNodeNum]
-set notGetDigestNomalNum  [expr int(ceil([expr $nomalNodeNum * $notGetDigestRate]))]
-set getDigestNomalNum [expr $nomalNodeNum - $notGetDigestNomalNum]
+set digestNodeNum 0
+set gateNodeNum 0
+set semiGateNodeNum 0
+set nomalNodeNum  0
+set notGetDigestNomalNum 0
+set getDigestNomalNum 0
 
 # ノードリスト
 set nodeList(0) ""
@@ -111,6 +113,29 @@ proc copy {ary1 ary2} {
 }
 
 # ノードの設定
+
+proc setClusterNum { num } {
+    global clusterNum
+    if {$num == 200} {
+        set clusterNum 7
+    } elseif {$num == 400} {
+        set clusterNum 10
+    } elseif {$num == 600} {
+        set clusterNum 14
+    } elseif {$num == 800} {
+        set clusterNum 18
+    }
+}
+
+proc setNodeNum {} {
+    global digestNodeNum gateNodeNum semiGateNodeNum nomalNodeNum notGetDigestNomalNum getDigestNomalNum userNum clusterNum digestUserRate gateCommentRate nomalNodeNum notGetDigestRate notGetDigestNomalNum semiGateNodeRate semiGateCommentRate
+    set digestNodeNum [expr int(ceil([expr $userNum / $clusterNum * $digestUserRate]))]
+    set gateNodeNum [expr int(ceil([expr $userNum / $clusterNum * $gateCommentRate]))]
+    set semiGateNodeNum [expr int(ceil([expr $userNum / $clusterNum * ($semiGateCommentRate - $gateCommentRate)]))]
+    set nomalNodeNum  [expr $userNum / $clusterNum - $digestNodeNum - $gateNodeNum - $semiGateNodeNum]
+    set notGetDigestNomalNum  [expr int(ceil([expr $nomalNodeNum * $notGetDigestRate]))]
+    set getDigestNomalNum [expr $nomalNodeNum - $notGetDigestNomalNum]
+}
 
 proc ratioSetting {} {
     global bandwidthRatio commentRatio clusterNum userNum
@@ -296,11 +321,6 @@ proc nomalNodeInit {} {
     # 残りのノードはu全てダイジェスト取得済みノーマルノードへ
     set k [expr $k]
     set limit [expr [array size sortedBandwidthList]-$k]
-    puts "limit: $limit"
-    puts "k: $k"
-    puts "sortedBandwidthlistかず: [expr [array size sortedBandwidthList]]"
-    puts "のこりのsortedBandwidthlistかず: [expr [array size sortedBandwidthList]-$k]"
-
 
     for {set i 0} {$i < $limit} {incr i} {
         set nomalDigestNode($i,$getDigestNomalNum) $sortedBandwidthList($k)
@@ -310,7 +330,6 @@ proc nomalNodeInit {} {
 
         incr k
     }
-    puts "nomalDigestNode num: [array size nomalDigestNode]"
 
     return
 }
@@ -505,7 +524,7 @@ proc createNomalNodeStreamOneCluster {} {
 
 #Define a 'finish' procedure
 proc finish {} {
-    global ns f gCount sfile
+    global ns f gCount sfile userNum
     $ns flush-trace
 
     set awkCode {
@@ -549,11 +568,17 @@ proc finish {} {
     exec touch tput-tcp.tr tput-udp.tr
     exec awk $awkCode out.tr
     exec xgraph -bb -tk -m -x Seconds -y "Throughput (kbps)" tput-tcp.tr tput-udp.tr &
-
+    exec cp out.nam [append outNamName "out" $userNum "-no-roll.nam"]
+    exec cp out.tr [append outTrName "out" $userNum "-no-roll.tr"]
+    exec cp tput-tcp.tr [append tputTcpName "tput-tcp" $userNum "-no-roll.tr"]
+    exec cp tput-udp.tr [append tputUdpName "tput-udp" $userNum "-no-roll.tr"]
     exit 0
 }
 
 ## 処理開始
+
+setClusterNum $userNum
+setNodeNum
 
 puts "１クラスタ当たりのノードの数\n"
 puts "ダイジェストノード: \t\t\t$digestNodeNum"
@@ -600,9 +625,9 @@ for {set i 0} {$i < $gateNodeNum} {incr i} {
 
 # クラスタの数実行
 for {set i 0} {$i < $clusterNum} {incr i} {
-    connectGateNodeInCluster $i
-    connectSemiGateNode $i
-    connectDigestNode $i
+    # connectGateNodeInCluster $i
+    # connectSemiGateNode $i
+    # connectDigestNode $i
     connectNomalNode $i
 }
 
@@ -616,6 +641,6 @@ for {set i 0} {$i < $gCount} {incr i} {
     $ns at 0 "$goddard($i) start"
     $ns at 240.0 "$goddard($i) stop"
 }
-$ns at 250.0 "finish"
+$ns at 240.0 "finish"
 
 $ns run
