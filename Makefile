@@ -2,7 +2,7 @@ file_path="/home/shunsuke/Downloads/ns2/new-ns-2.35/ns-allinone-2.35/ns-2.35/tcl
 ns="/home/shunsuke/Downloads/ns2/new-ns-2.35/ns-allinone-2.35/bin/ns"
 my-goddard:
 	cd $(file_path)
-	$(ns) my-goddard.tcl $(ARGS)
+	$(ns) my-goddard.tcl $(userNum)
 my-goddard-no-roll:
 	cd $(file_path)
 	$(ns) my-goddard-no-roll.tcl $(userNum)
