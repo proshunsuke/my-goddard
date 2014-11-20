@@ -22,5 +22,7 @@ xgraph-average:
 	xgraph -geometry 800x600 -bb -tk -m -x "Node num" -y "Throughput (kbps)" average.tr &
 xgraph-average-no-roll:
 	xgraph -geometry 800x600 -bb -tk -m -x "Node num" -y "Throughput (kbps)" average-no-roll.tr &
+xgraph-average-compare:
+	xgraph -geometry 800x600 -bb -tk -m -x "Node num" -y "Throughput (kbps)" average.tr average-no-roll.tr &
 awk-average:
 	awk -f throughput-udp-tcp.awk out.tr
