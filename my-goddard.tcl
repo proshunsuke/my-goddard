@@ -19,12 +19,12 @@ set userNum [lindex $argv 0]
 set clusterNum 0
 
 # 実験用パラメータ
-set digestUserRate 0
-set gateBandWidthRate 0
-set gateCommentRate 0
-set semiGateBandWidthRate 0
-set semiGateCommentRate 0
-set notGetDigestRate 0
+set digestUserRate 0.2
+set gateBandWidthRate 0.3
+set gateCommentRate 0.1
+set semiGateBandWidthRate 0.3
+set semiGateCommentRate 0.2
+set notGetDigestRate 0.2
 set connectNomalNodeRate 0.25
 
 # ノード
@@ -125,6 +125,16 @@ proc setClusterNum { num } {
     } elseif {$num == 800} {
         set clusterNum 18
     }
+}
+
+proc setNodeNum {} {
+    global digestNodeNum gateNodeNum semiGateNodeNum nomalNodeNum notGetDigestNomalNum getDigestNomalNum userNum clusterNum digestUserRate gateCommentRate nomalNodeNum notGetDigestRate notGetDigestNomalNum semiGateNodeRate semiGateCommentRate
+    set digestNodeNum [expr int(ceil([expr $userNum / $clusterNum * $digestUserRate]))]
+    set gateNodeNum [expr int(ceil([expr $userNum / $clusterNum * $gateCommentRate]))]
+    set semiGateNodeNum [expr int(ceil([expr $userNum / $clusterNum * ($semiGateCommentRate - $gateCommentRate)]))]
+    set nomalNodeNum  [expr $userNum / $clusterNum - $digestNodeNum - $gateNodeNum - $semiGateNodeNum]
+    set notGetDigestNomalNum  [expr int(ceil([expr $nomalNodeNum * $notGetDigestRate]))]
+    set getDigestNomalNum [expr $nomalNodeNum - $notGetDigestNomalNum]
 }
 
 proc ratioSetting {} {
@@ -543,7 +553,7 @@ proc finish {} {
             close $sfile($i)
         }
     }
-&
+
     close $f
 
     exec rm -f tput-tcp.tr tput-udp.tr
@@ -624,6 +634,7 @@ for {set i 0} {$i < $gCount} {incr i} {
     $ns at 0 "$goddard($i) start"
     $ns at 240.0 "$goddard($i) stop"
 }
+
 $ns at 250.0 "finish"
 
 $ns run

@@ -59,4 +59,12 @@ gnuplot-average-compare:
 	gnuplot average-compare.plt
 	cp average-compare.eps fig15.eps
 	cp fig15.eps $(resume_path)
-
+gnuplot-all:
+	make gnuplot-comment
+	make gnuplot-udp
+	make gnuplot-udp-tcp
+	make gnuplot-average
+	make gnuplot-udp-no-roll
+	make gnuplot-udp-tcp-no-roll
+	make gnuplot-average-no-roll
+	make gnuplot-average-compare
