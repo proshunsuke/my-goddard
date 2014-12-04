@@ -560,10 +560,10 @@ proc finish {} {
     exec touch tput-tcp.tr tput-udp.tr
     exec awk $awkCode out.tr
     exec xgraph -bb -tk -m -x Seconds -y "Throughput (kbps)" tput-tcp.tr tput-udp.tr &
-    exec cp out.nam [append outNamName "out" $userNum]
-    exec cp out.tr [append outTrName "out" $userNum]
-    exec cp tput-tcp.tr [append tputTcpName "tput-tcp" $userNum]
-    exec cp tput-udp.tr [append tputUdpName "tput-udp" $userNum]
+    exec cp out.nam [append outNamName "out" $userNum ".nam"]
+    exec cp out.tr [append outTrName "out" $userNum ".tr"]
+    exec cp tput-tcp.tr [append tputTcpName "tput-tcp" $userNum ".tr"]
+    exec cp tput-udp.tr [append tputUdpName "tput-udp" $userNum ".tr"]
 
     exit 0
 }
