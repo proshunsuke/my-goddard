@@ -19,12 +19,12 @@ set userNum [lindex $argv 0]
 set clusterNum 0
 
 # 実験用パラメータ
-set digestUserRate 0.2
-set gateBandWidthRate 0.3
-set gateCommentRate 0.1
-set semiGateBandWidthRate 0.3
-set semiGateCommentRate 0.2
-set notGetDigestRate 0.2
+set digestUserRate 0
+set gateBandWidthRate 0
+set gateCommentRate 0
+set semiGateBandWidthRate 0
+set semiGateCommentRate 0
+set notGetDigestRate 0
 set connectNomalNodeRate 0.25
 
 # ノード
@@ -292,7 +292,9 @@ proc semiGateNodeInit {} {
 proc nomalNodeInit {} {
     global ns userNum clusterNum nomalDigestNode nomalNotDigestNode notGetDigestRate notGetDigestNomalNum getDigestNomalNum gateNode semiGateNode sortedBandwidthList
 
-    set k [expr [array size gateNode] + [array size semiGateNode]]
+    # set k [expr [array size gateNode] + [array size semiGateNode]]
+    set k 0
+
     for {set i 0} {$i < $clusterNum} {incr i} {
         for {set j 0} {$j < $notGetDigestNomalNum} {incr j} {
             set nomalNotDigestNode($i,$j) $sortedBandwidthList($k)
@@ -315,7 +317,9 @@ proc nomalNodeInit {} {
         }
     }
 
+
     # 残りのノードはu全てダイジェスト取得済みノーマルノードへ
+    set k [expr $k]
     set limit [expr [array size sortedBandwidthList]-$k]
 
     for {set i 0} {$i < $limit} {incr i} {
@@ -426,7 +430,7 @@ proc connectDigestNode { selfIndexNum } {
 }
 
 proc connectNomalNode { selfIndexNum } {
-    global ns connectNomalNodeRate nomalDigestNode nomalNotDigestNode clusterNum notGetDigestNomalNum getDigestNomalNum nomalNodeNum
+    global ns connectNomalNodeRate nomalDigestNode nomalNotDigestNode clusterNum notGetDigestNomalNum getDigestNomalNum nomalNodeNum rootNode bandwidthList
 
     # とりあえずリストに全部入れる
     for {set i 0} {$i < [expr $nomalNodeNum+1]} {incr i} {
@@ -467,6 +471,10 @@ proc connectNomalNode { selfIndexNum } {
             }
         }
     }
+
+    # 配信者ノード
+    $ns duplex-link $nomalNodeList(0) $rootNode $bandwidthList($nomalNodeList(0))Mb 500ms DropTail
+
 }
 
 # Setup Goddard Streaming
@@ -560,11 +568,10 @@ proc finish {} {
     exec touch tput-tcp.tr tput-udp.tr
     exec awk $awkCode out.tr
     exec xgraph -bb -tk -m -x Seconds -y "Throughput (kbps)" tput-tcp.tr tput-udp.tr &
-    exec cp out.nam [append outNamName "out" $userNum ".nam"]
-    exec cp out.tr [append outTrName "out" $userNum ".tr"]
-    exec cp tput-tcp.tr [append tputTcpName "tput-tcp" $userNum ".tr"]
-    exec cp tput-udp.tr [append tputUdpName "tput-udp" $userNum ".tr"]
-
+    exec cp out.nam [append outNamName "out" $userNum "-no-roll.nam"]
+    exec cp out.tr [append outTrName "out" $userNum "-no-roll.tr"]
+    exec cp tput-tcp.tr [append tputTcpName "tput-tcp" $userNum "-no-roll.tr"]
+    exec cp tput-udp.tr [append tputUdpName "tput-udp" $userNum "-no-roll.tr"]
     exit 0
 }
 
@@ -618,9 +625,9 @@ for {set i 0} {$i < $gateNodeNum} {incr i} {
 
 # クラスタの数実行
 for {set i 0} {$i < $clusterNum} {incr i} {
-    connectGateNodeInCluster $i
-    connectSemiGateNode $i
-    connectDigestNode $i
+    # connectGateNodeInCluster $i
+    # connectSemiGateNode $i
+    # connectDigestNode $i
     connectNomalNode $i
 }
 
@@ -634,7 +641,6 @@ for {set i 0} {$i < $gCount} {incr i} {
     $ns at 0 "$goddard($i) start"
     $ns at 240.0 "$goddard($i) stop"
 }
-
-$ns at 250.0 "finish"
+$ns at 240.0 "finish"
 
 $ns run
