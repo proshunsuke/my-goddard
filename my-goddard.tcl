@@ -635,6 +635,10 @@ for {set i 0} {$i < $gCount} {incr i} {
     $ns at 240.0 "$goddard($i) stop"
 }
 
+$ns at 1 "set n0 [$ns node]"
+$ns at 2 "set n1 [$ns node]"
+$ns at 10 "set n2 [$ns node]"
+
 $ns at 250.0 "finish"
 
 $ns run
