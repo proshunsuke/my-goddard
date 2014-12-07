@@ -1,7 +1,4 @@
-# デフォルトの値はここで定義
-#source my-goddard-default.tcl
-
-# 処理のためのメソッド定義
+# 処理のための一般的なメソッド
 
 proc decr { int { n 1 } } {
     if { [ catch {
@@ -127,39 +124,6 @@ proc rootNodeInit {rootNode ns} {
     $rn color red
 }
 
-# この中で便宜上一時的に帯域幅リストからノードを削除している
-proc digestNodeInit {digestNode bandwidthList temporalBandwidthList nodeListForBandwidth nodeList userNum clusterNum digestNodeNum} {
-    upvar $digestNode dn $bandwidthList bl $temporalBandwidthList tbl $nodeListForBandwidth nlfb $nodeList nl
-
-    copy bl tbl
-
-    set commentI [expr $userNum-1]
-    for {set i 0} {$i < $clusterNum} {incr i} {
-        for {set j 0} {$j < $digestNodeNum} {incr j} {
-            set dn($i,$j) $nl($commentI)
-
-            # 帯域幅リストからダイジェストノードを削除
-            array unset bl $nl($commentI)
-
-            # 帯域幅ノードリストからダイジェストノードを削除
-            for {set k 0} {$k < [array size nlfb]} {incr k} {
-                if {[array get nlfb $k] == []} {
-                    continue
-                }
-                if {$nlfb($k) == $nl($commentI)} {
-                    array unset nlfb $k
-                    break
-                }
-            }
-
-            # ダイジェストノードの色
-            $dn($i,$j) color yellow
-
-            decr commentI
-        }
-    }
-    return
-}
 
 proc sortBandwidthList {sortedBandwidthList bandwidthRatio bandwidthList} {
     upvar $sortedBandwidthList sbl $bandwidthRatio br $bandwidthList bl
@@ -178,93 +142,6 @@ proc sortBandwidthList {sortedBandwidthList bandwidthRatio bandwidthList} {
                 set sbl($k) $index
                 incr k
             }
-        }
-    }
-}
-
-proc gateNodeInit {gateNode sortedBandwidthList clusterNum gateNodeNum} {
-    upvar $gateNode gn $sortedBandwidthList sbl
-    set k 0
-    for {set i 0} {$i < $clusterNum} {incr i} {
-        for {set j 0} {$j < $gateNodeNum} {incr j} {
-            set gn($i,$j) $sbl($k)
-
-            # ゲートノードの色
-            $gn($i,$j) color #006400
-
-            incr k
-        }
-    }
-    return
-}
-
-proc semiGateNodeInit {semiGateNode sortedBandwidthList gateNode clusterNum semiGateNodeNum} {
-    upvar $semiGateNode sgn $sortedBandwidthList sbl $gateNode gn
-    set k [array size gn]
-    for {set i 0} {$i < $clusterNum} {incr i} {
-        for {set j 0} {$j < $semiGateNodeNum} {incr j} {
-            set sgn($i,$j) $sbl($k)
-
-            # セミゲートノードの色
-            $sgn($i,$j) color #00ff00
-
-            incr k
-        }
-    }
-
-    return
-}
-
-proc nomalNodeInit {nomalNotDigestNode nomalDigestNode gateNode semiGateNode sortedBandwidthList clusterNum notGetDigestNomalNum getDigestNomalNum} {
-    upvar $nomalNotDigestNode nndn $nomalDigestNode ndn $gateNode gn $semiGateNode sgn $sortedBandwidthList sbl
-
-    set k [expr [array size gn] + [array size sgn]]
-    for {set i 0} {$i < $clusterNum} {incr i} {
-        for {set j 0} {$j < $notGetDigestNomalNum} {incr j} {
-            set nndn($i,$j) $sbl($k)
-
-            # ダイジェスト未取得ノーマルノードの色
-            $nndn($i,$j) color pink
-
-            incr k
-        }
-    }
-
-    for {set i 0} {$i < $clusterNum} {incr i} {
-        for {set j 0} {$j < $getDigestNomalNum} {incr j} {
-            set ndn($i,$j) $sbl($k)
-
-            # ダイジェスト取得ノーマルノードの色
-            $ndn($i,$j) color orange
-
-            incr k
-        }
-    }
-
-    # 残りのノードはu全てダイジェスト取得済みノーマルノードへ
-    set limit [expr [array size sbl]-$k]
-
-    for {set i 0} {$i < $limit} {incr i} {
-        set ndn($i,$getDigestNomalNum) $sbl($k)
-
-        # ダイジェスト取得ノーマルノードの色
-        $ndn($i,$getDigestNomalNum) color orange
-
-        incr k
-    }
-    return
-}
-
-proc connectGateNodeOutside {gateNode bandwidthList nsArg clusterNum gateNodeNum selfIndexNum} {
-    upvar $gateNode gn $bandwidthList bl $nsArg ns
-    # クラスタ外のゲートノード同士：１→２ ２→３... 7→１
-    for {set i 0} {$i < $clusterNum} {incr i} {
-        if { [expr $i+1] >= $clusterNum } {
-            set bandwidth [returnLowBandwidth bl $gn($i,$selfIndexNum) $gn([expr $i+1-$clusterNum],$selfIndexNum)]
-            $ns duplex-link $gn($i,$selfIndexNum) $gn([expr $i+1-$clusterNum],$selfIndexNum) [expr $bandwidth]Mb 100ms DropTail
-        } else {
-            set bandwidth [returnLowBandwidth bl $gn($i,$selfIndexNum) $gn([expr $i+1],$selfIndexNum)]
-            $ns duplex-link $gn($i,$selfIndexNum) $gn([expr $i+1],$selfIndexNum) [expr $bandwidth]Mb 100ms DropTail
         }
     }
 }

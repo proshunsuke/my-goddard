@@ -317,7 +317,6 @@ proc nomalNodeInit {} {
         }
     }
 
-
     # 残りのノードはu全てダイジェスト取得済みノーマルノードへ
     set k [expr $k]
     set limit [expr [array size sortedBandwidthList]-$k]

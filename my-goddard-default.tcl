@@ -2,18 +2,6 @@
 global defaultRNG
 $defaultRNG seed 15
 
-# パラメータ設定
-
-
-# 実験用パラメータ
-set digestUserRate 0.2
-set gateBandWidthRate 0.3
-set gateCommentRate 0.1
-set semiGateBandWidthRate 0.3
-set semiGateCommentRate 0.2
-set notGetDigestRate 0.2
-set connectNomalNodeRate 0.25
-
 # 帯域幅割合
 array set bandwidthRatio {
     3.000 30
