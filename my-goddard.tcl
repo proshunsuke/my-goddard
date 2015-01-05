@@ -216,6 +216,9 @@ proc connectSemiGateNode {semiGateNode digestNode nomalDigestNode nomalNotDigest
     upvar $semiGateNode sgn $digestNode dn $nomalDigestNode ndn $nomalNotDigestNode nndn $bandwidthList bl
     # ダイジェストノード
     for {set i 0} {$i < $semiGateNodeNum}  {incr i} {
+        if {[array get dn $selfIndexNum,[expr $i*2]] == []} {
+                    continue
+        }
         set bandwidth [returnLowBandwidth bl $sgn($selfIndexNum,$i) $dn($selfIndexNum,[expr $i*2])]
         $ns duplex-link $sgn($selfIndexNum,$i) $dn($selfIndexNum,[expr $i*2]) [expr $bandwidth]Mb 100ms DropTail
         if {[array get dn $selfIndexNum,[expr $i*2+1]] == []} {
@@ -338,12 +341,14 @@ proc finish {} {
     exec rm -f tput-tcp.tr tput-udp.tr
     exec touch tput-tcp.tr tput-udp.tr
     exec awk $awkCode out.tr
-    exec xgraph -bb -tk -m -x Seconds -y "Throughput (kbps)" tput-tcp.tr tput-udp.tr &
-    exec nam out.nam
+
     exec cp out.nam [append outNamName "out" $userNum ".nam"]
     exec cp out.tr [append outTrName "out" $userNum ".tr"]
     exec cp tput-tcp.tr [append tputTcpName "tput-tcp" $userNum ".tr"]
     exec cp tput-udp.tr [append tputUdpName "tput-udp" $userNum ".tr"]
+
+    exec xgraph -bb -tk -m -x Seconds -y "Throughput (kbps)" tput-tcp.tr tput-udp.tr &
+    exec nam out.nam &
 
     exit 0
 }
@@ -415,6 +420,6 @@ for {set i 0} {$i < $gCount} {incr i} {
     $ns at 240.0 "$goddard($i) stop"
 }
 
-$ns at 250.0 "finish"
+$ns at 240.0 "finish"
 
 $ns run

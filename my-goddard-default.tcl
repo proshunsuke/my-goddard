@@ -3,6 +3,7 @@ global defaultRNG
 $defaultRNG seed 15
 
 # 帯域幅割合
+# デフォルト
 array set bandwidthRatio {
     3.000 30
     1.500 3
@@ -15,6 +16,13 @@ array set bandwidthRatio {
     0.320 29
     0.256 20
 }
+
+# 全体的に高め
+# array set bandwidthRatio {
+#     0.768 70
+#     1.500 80
+#     3.000 50
+# }
 
 # コメント数割合
 array set commentRatio {

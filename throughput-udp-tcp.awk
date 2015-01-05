@@ -44,7 +44,19 @@ BEGIN {
   }
 
   END {
-      printf("Average Udp_Throughput[kbps] = %.2f\n",(udp_throughput/udp_num))
-      printf("Average Tcp_Throughput[kbps] = %.2f\n",(tcp_throughput/tcp_num))
+      res = udp_throughput/udp_num
+      if (ARGV[1] == "out200.tr") {
+          user_n = 200
+      } else if (ARGV[1] == "out400.tr") {
+          user_n = 400
+      } else if (ARGV[1] == "out600.tr") {
+          user_n = 600
+      }  else if (ARGV[1] == "out800.tr") {
+          user_n = 800
+      }
+      system("echo " user_n " " res " >> average.tr");
+
+      printf("Average Udp_Throughput[kbps] = %.2f\n",(res))
+      # printf("Average Tcp_Throughput[kbps] = %.2f\n",(tcp_throughput/tcp_num))
   }
 

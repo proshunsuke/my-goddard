@@ -68,6 +68,21 @@ gnuplot-average-compare:
 	cp average-compare.eps fig15.eps
 	cp fig15.eps $(resume_path)
 	cp fig15.eps $(img_path)
+gnuplot-average-compare-dig:
+	gnuplot average-compare-dig.plt
+	cp average-compare-dig.eps fig16.eps
+	cp fig16.eps $(resume_path)
+	cp fig16.eps $(img_path)
+gnuplot-average-compare-gat:
+	gnuplot average-compare-gat.plt
+	cp average-compare-gat.eps fig17.eps
+	cp fig17.eps $(resume_path)
+	cp fig17.eps $(img_path)
+gnuplot-average-compare-bw:
+	gnuplot average-compare-bw.plt
+	cp average-compare-bw.eps fig18.eps
+	cp fig18.eps $(resume_path)
+	cp fig18.eps $(img_path)
 gnuplot-all:
 	make gnuplot-comment
 	make gnuplot-udp
@@ -77,3 +92,22 @@ gnuplot-all:
 	make gnuplot-udp-tcp-no-roll
 	make gnuplot-average-no-roll
 	make gnuplot-average-compare
+average-calc:
+	rm average.tr
+	touch average.tr
+	awk -f throughput-udp-tcp.awk out200.tr
+	awk -f throughput-udp-tcp.awk out400.tr
+	awk -f throughput-udp-tcp.awk out600.tr
+	awk -f throughput-udp-tcp.awk out800.tr
+average-dig-calc:
+	awk -f average.awk average-dig-0.1.tr
+	awk -f average.awk average-dig-0.2.tr
+	awk -f average.awk average-dig-0.3.tr
+average-gat-calc:
+	awk -f average.awk average-gat-0.1.tr
+	awk -f average.awk average-gat-0.2.tr
+average-bw-calc:
+	awk -f average.awk average-bw-low.tr
+	awk -f average.awk average-bw-high.tr
+
+
