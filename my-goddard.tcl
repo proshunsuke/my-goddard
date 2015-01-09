@@ -29,6 +29,7 @@ set semiGateNode(0,0) ""
 set digestNode(0,0) ""
 set nomalDigestNode(0,0) ""
 set nomalNotDigestNode(0,0) ""
+set joinNode(0,0) ""
 
 # ノードの数
 set digestNodeNum 0
@@ -37,10 +38,12 @@ set semiGateNodeNum 0
 set nomalNodeNum  0
 set notGetDigestNomalNum 0
 set getDigestNomalNum 0
+set joinNodeNum 0
 
 # ノードリスト
 set nodeList(0) ""
 set nodeListForBandwidth(0) ""
+set joinNodeList(0) ""
 
 # 帯域幅ノードリスト(Mbps)
 set bandwidthList(0) ""
@@ -61,6 +64,40 @@ set sfile(0) ""
 set gCount 0
 
 # my-goddardのための関数
+
+# この中で便宜上一時的に帯域幅リストからノードを削除している
+proc digestNodeInit {digestNode bandwidthList temporalBandwidthList nodeListForBandwidth nodeList userNum clusterNum digestNodeNum} {
+    upvar $digestNode dn $bandwidthList bl $temporalBandwidthList tbl $nodeListForBandwidth nlfb $nodeList nl
+
+    copy bl tbl
+
+    set commentI [expr $userNum-1]
+    for {set i 0} {$i < $clusterNum} {incr i} {
+        for {set j 0} {$j < $digestNodeNum} {incr j} {
+            set dn($i,$j) $nl($commentI)
+
+            # 帯域幅リストからダイジェストノードを削除
+            array unset bl $nl($commentI)
+
+            # 帯域幅ノードリストからダイジェストノードを削除
+            for {set k 0} {$k < [array size nlfb]} {incr k} {
+                if {[array get nlfb $k] == []} {
+                    continue
+                }
+                if {$nlfb($k) == $nl($commentI)} {
+                    array unset nlfb $k
+                    break
+                }
+            }
+
+            # ダイジェストノードの色
+            $dn($i,$j) color yellow
+
+            decr commentI
+        }
+    }
+    return
+}
 
 proc gateNodeInit {gateNode sortedBandwidthList clusterNum gateNodeNum} {
     upvar $gateNode gn $sortedBandwidthList sbl
@@ -121,7 +158,7 @@ proc nomalNodeInit {nomalNotDigestNode nomalDigestNode gateNode semiGateNode sor
         }
     }
 
-    # 残りのノードはu全てダイジェスト取得済みノーマルノードへ
+    # 残りのノードは全てダイジェスト取得済みノーマルノードへ
     set limit [expr [array size sbl]-$k]
 
     for {set i 0} {$i < $limit} {incr i} {
@@ -135,38 +172,20 @@ proc nomalNodeInit {nomalNotDigestNode nomalDigestNode gateNode semiGateNode sor
     return
 }
 
-# この中で便宜上一時的に帯域幅リストからノードを削除している
-proc digestNodeInit {digestNode bandwidthList temporalBandwidthList nodeListForBandwidth nodeList userNum clusterNum digestNodeNum} {
-    upvar $digestNode dn $bandwidthList bl $temporalBandwidthList tbl $nodeListForBandwidth nlfb $nodeList nl
+proc joinNodeInit {joinNode joinNodeList bandwidthRatio clusterNum finishTime} {
+    upvar $joinNode jn $joinNodeList jnl
 
-    copy bl tbl
-
-    set commentI [expr $userNum-1]
+    set k 0
     for {set i 0} {$i < $clusterNum} {incr i} {
-        for {set j 0} {$j < $digestNodeNum} {incr j} {
-            set dn($i,$j) $nl($commentI)
+        for {set j 0} {$j < [expr ($finishTime / 10)]} {incr j} {
+            set jn($i,$j) $jnl($k)
 
-            # 帯域幅リストからダイジェストノードを削除
-            array unset bl $nl($commentI)
+            # ダイジェスト未取得ノーマルノードの色
+            $jn($i,$j) color #800080
 
-            # 帯域幅ノードリストからダイジェストノードを削除
-            for {set k 0} {$k < [array size nlfb]} {incr k} {
-                if {[array get nlfb $k] == []} {
-                    continue
-                }
-                if {$nlfb($k) == $nl($commentI)} {
-                    array unset nlfb $k
-                    break
-                }
-            }
-
-            # ダイジェストノードの色
-            $dn($i,$j) color yellow
-
-            decr commentI
+            incr k
         }
     }
-    return
 }
 
 # ノード間の接続
@@ -258,9 +277,7 @@ proc connectNomalNode {nomalDigestNode nomalNotDigestNode bandwidthList ns clust
     # とりあえずリストに全部入れる
     for {set i 0} {$i < [expr $nomalNodeNum+1]} {incr i} {
         if {$i >= $notGetDigestNomalNum} {
-            if {[array get ndn $selfIndexNum,[expr $i-$notGetDigestNomalNum]] == []} {
-                continue
-            }
+            if {[array get ndn $selfIndexNum,[expr $i-$notGetDigestNomalNum]] == []} { continue }
             set nomalNodeList($i) $ndn($selfIndexNum,[expr $i-$notGetDigestNomalNum])
         } else {
             set nomalNodeList($i) $nndn($selfIndexNum,$i)
@@ -283,14 +300,51 @@ proc connectNomalNode {nomalDigestNode nomalNotDigestNode bandwidthList ns clust
     for {set i 0} {$i < [expr $nomalNodeNum+1]} {incr i} {
         for {set j 0} {$j < $connectNomalNum} {incr j} {
             if { [expr $i+$j+1] >= $nomalNodeNum } {
-                if {[array get nomalNodeList $i] == []} {
-                    continue
-                }
+                if {[array get nomalNodeList $i] == []} { continue }
                 set bandwidth [returnLowBandwidth bl $nomalNodeList($i) $nomalNodeList([expr $i+$j+1-$nomalNodeNum])]
                 $ns duplex-link $nomalNodeList($i) $nomalNodeList([expr $i+$j+1-$nomalNodeNum]) [expr $bandwidth]Mb 100ms DropTail
             } else {
                 set bandwidth [returnLowBandwidth bl $nomalNodeList($i) $nomalNodeList([expr $i+$j+1])]
                 $ns duplex-link $nomalNodeList($i) $nomalNodeList([expr $i+$j+1]) [expr $bandwidth]Mb 100ms DropTail
+            }
+        }
+    }
+}
+
+proc connectJoinNode {joinNode nomalDigestNode nomalNotDigestNode bandwidthList ns clusterNum joinNodeNum nomalNodeNum selfIndexNum} {
+    upvar $joinNode jn $nomalDigestNode ndn $nomalNotDigestNode nndn $bandwidthList bl
+    # joinNodeとnomalDigestNode
+
+    set i 0
+    while {[array get ndn $selfIndexNum,$i] != []} {
+        $ns duplex-link $jn($selfIndexNum,$i) $ndn($selfIndexNum,$i) bl($ndn($selfIndexNum,$i))Mb 100ms DropTail
+        incr i
+    }
+
+    # joinNodeとnomalNotDigestNode
+    set j 0
+    while {[array get nndn $selfIndexNum,$j] != [] && [array get jn $selfIndexNum,$i] != []} {
+        $ns duplex-link $jn($selfIndexNum,$i) $nndn($selfIndexNum,$j) bl($ndn($selfIndexNum,$j))Mb 100ms DropTail
+        incr i
+    }
+
+    set connectJoinNum 4
+    for {set i 0 } {$i < [expr $joinNodeNum - 1]} {incr i} {
+        set jList($i) $jn($selfIndexNum,$i)
+    }
+
+    # joinNode同士
+    for {set i 0} {$i < [expr $joinNodeNum-2]} {incr i} {
+        for {set j 0} {$j < $connectJoinNum} {incr j} {
+            if { [expr $i+$j+1] >= $joinNodeNum } {
+                if {[array get jList $i] == []} { continue }
+                $ns duplex-link $jList($i) $jList([expr int($i+$j+1-$joinNodeNum)]) 1.0Mb 100ms DropTail
+            } else {
+                if {$jList($i) == $jList([expr $i+$j])} {
+                    $ns duplex-link $jList($i) $jList([expr $i+$j+1]) 1.0Mb 100ms DropTail
+                } else {
+                    $ns duplex-link $jList($i) $jList([expr $i+$j]) 1.0Mb 100ms DropTail
+                }
             }
         }
     }
@@ -357,7 +411,7 @@ proc finish {} {
 
 setPacketColor $ns
 setClusterNum clusterNum $userNum
-setNodeNum digestNodeNum gateNodeNum semiGateNodeNum nomalNodeNum notGetDigestNomalNum getDigestNomalNum $userNum $clusterNum $digestUserRate $gateCommentRate $semiGateCommentRate $gateCommentRate $semiGateNodeNum $notGetDigestRate
+setNodeNum digestNodeNum gateNodeNum semiGateNodeNum nomalNodeNum notGetDigestNomalNum getDigestNomalNum joinNodeNum $userNum $clusterNum $digestUserRate $gateCommentRate $semiGateCommentRate $gateCommentRate $semiGateNodeNum $notGetDigestRate $finishTime
 
 puts "１クラスタ当たりのノードの数\n"
 puts "ダイジェストノード: \t\t\t$digestNodeNum"
@@ -370,7 +424,7 @@ puts "ダイジェスト取得済みノーマルノード: \t$getDigestNomalNum"
 ratioSetting bandwidthRatio commentRatio $clusterNum $userNum
 
 # 各ノードリストのinit処理
-nodeListInit nodeList nodeListForBandwidth $ns $userNum
+nodeListInit nodeList nodeListForBandwidth joinNodeList $ns $userNum $finishTime $clusterNum
 bandwidthListInit bandwidthList bandwidthRatio nodeListForBandwidth $ns $userNum
 commentListInit commentList commentRatio nodeList $ns $userNum
 nodeListForBandwidthShuffle nodeListForBandwidth $userNum
@@ -382,6 +436,7 @@ sortBandwidthList sortedBandwidthList bandwidthRatio bandwidthList
 gateNodeInit gateNode sortedBandwidthList $clusterNum $gateNodeNum
 semiGateNodeInit semiGateNode sortedBandwidthList gateNode $clusterNum $semiGateNodeNum
 nomalNodeInit nomalNotDigestNode nomalDigestNode gateNode semiGateNode sortedBandwidthList $clusterNum $notGetDigestNomalNum $getDigestNomalNum
+joinNodeInit joinNode joinNodeList bandwidthRatio $clusterNum $finishTime
 
 puts "\nノードの数\n"
 puts "ダイジェストノード: \t\t\t[array size digestNode]"
@@ -410,16 +465,20 @@ for {set i 0} {$i < $clusterNum} {incr i} {
     connectSemiGateNode semiGateNode digestNode nomalDigestNode nomalNotDigestNode bandwidthList $ns $clusterNum $semiGateNodeNum $notGetDigestNomalNum $getDigestNomalNum $i
     connectDigestNode digestNode nomalNotDigestNode bandwidthList $ns $notGetDigestNomalNum $getDigestNomalNum $digestNodeNum $i
     connectNomalNode nomalDigestNode nomalNotDigestNode bandwidthList $ns $clusterNum $connectNomalNodeRate $notGetDigestNomalNum $getDigestNomalNum $nomalNodeNum $i
+    connectJoinNode joinNode nomalDigestNode nomalNotDigestNode bandwidthList $ns $clusterNum $joinNodeNum $nomalNodeNum $i
 }
 
 createNomalNodeStream nomalDigestNode nomalNotDigestNode digestNode goddard gplayer sfile gCount $rootNode $ns $clusterNum $getDigestNomalNum $notGetDigestNomalNum $digestNodeNum
 
+# test
+set finishTime 10
+
 # Scehdule Simulation
 for {set i 0} {$i < $gCount} {incr i} {
     $ns at 0 "$goddard($i) start"
-    $ns at 240.0 "$goddard($i) stop"
+    $ns at $finishTime "$goddard($i) stop"
 }
 
-$ns at 240.0 "finish"
+$ns at $finishTime "finish"
 
 $ns run

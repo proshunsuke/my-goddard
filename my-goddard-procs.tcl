@@ -51,14 +51,15 @@ proc setClusterNum {clusterNumArg userNum} {
     }
 }
 
-proc setNodeNum {digestNodeNum gateNodeNum semiGateNodeNum nomalNodeNum notGetDigestNomalNum getDigestNomalNum userNum clusterNum digestUserRate gateCommentRate semiGateCommentRate gateCommentRate semiGateNodeNum notGetDigestRate} {
-    upvar $digestNodeNum dnn $gateNodeNum gnn $semiGateNodeNum sgnn $nomalNodeNum nnn $notGetDigestNomalNum ngdn $getDigestNomalNum gdnn
+proc setNodeNum {digestNodeNum gateNodeNum semiGateNodeNum nomalNodeNum notGetDigestNomalNum getDigestNomalNum joinNodeNum userNum clusterNum digestUserRate gateCommentRate semiGateCommentRate gateCommentRate semiGateNodeNum notGetDigestRate finishTime} {
+    upvar $digestNodeNum dnn $gateNodeNum gnn $semiGateNodeNum sgnn $nomalNodeNum nnn $notGetDigestNomalNum ngdn $getDigestNomalNum gdnn $joinNodeNum jnn
     set dnn [expr int(ceil([expr $userNum / $clusterNum * $digestUserRate]))]
     set gnn [expr int(ceil([expr $userNum / $clusterNum * $gateCommentRate]))]
     set sgnn [expr int(ceil([expr $userNum / $clusterNum * ($semiGateCommentRate - $gateCommentRate)]))]
-    set nnn  [expr $userNum / $clusterNum - $dnn - $gnn - $sgnn]
-    set ngdn  [expr int(ceil([expr $nnn * $notGetDigestRate]))]
+    set nnn [expr $userNum / $clusterNum - $dnn - $gnn - $sgnn]
+    set ngdn [expr int(ceil([expr $nnn * $notGetDigestRate]))]
     set gdnn [expr $nnn - $ngdn]
+    set jnn [expr $finishTime / 10]
 }
 
 proc ratioSetting {bandwidthRatio commentRatio clusterNum userNum} {
@@ -76,11 +77,15 @@ proc ratioSetting {bandwidthRatio commentRatio clusterNum userNum} {
     copy tempCommentRatio cr
 }
 
-proc nodeListInit {nodeList nodeListForBandwidth ns userNum} {
-    upvar $nodeList nl $nodeListForBandwidth nlfb
+proc nodeListInit {nodeList nodeListForBandwidth joinNodeList ns userNum finishTime clusterNum} {
+    upvar $nodeList nl $nodeListForBandwidth nlfb $joinNodeList jnl
     for {set i 0} {$i < $userNum} {incr i} {
         set nl($i) [$ns node]
         set nlfb($i) $nl($i)
+    }
+
+    for {set i 0} {$i < [expr $finishTime * $clusterNum / 10]} {incr i} {
+        set jnl($i) [$ns node]
     }
 }
 

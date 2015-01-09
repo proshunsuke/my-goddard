@@ -2,6 +2,9 @@
 global defaultRNG
 $defaultRNG seed 15
 
+# 実験時間
+set finishTime 240.0
+
 # 帯域幅割合
 # デフォルト
 array set bandwidthRatio {
@@ -17,7 +20,7 @@ array set bandwidthRatio {
     0.256 20
 }
 
-# 全体的に高め
+# 全体的に高め（実験用）
 # array set bandwidthRatio {
 #     0.768 70
 #     1.500 80
