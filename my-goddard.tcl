@@ -30,6 +30,9 @@ set digestNode(0,0) ""
 set nomalDigestNode(0,0) ""
 set nomalNotDigestNode(0,0) ""
 set joinNode(0,0) ""
+set replaceGateNode(0,0) ""
+set replaceSemiGateNode(0,0) ""
+set replaceDigestNode(0,0) ""
 
 # ノードの数
 set digestNodeNum 0
@@ -39,11 +42,18 @@ set nomalNodeNum  0
 set notGetDigestNomalNum 0
 set getDigestNomalNum 0
 set joinNodeNum 0
+set replaceGateNodeNum 0
+set replaceSemiGateNodeNum 0
+set replaceDigestNodeNum 0
+
 
 # ノードリスト
 set nodeList(0) ""
 set nodeListForBandwidth(0) ""
 set joinNodeList(0) ""
+set replaceGateNodeList(0) ""
+set replaceSemiGateNodeList(0) ""
+set replaceDigestNodeList(0) ""
 
 # 帯域幅ノードリスト(Mbps)
 set bandwidthList(0) ""
@@ -180,13 +190,59 @@ proc joinNodeInit {joinNode joinNodeList bandwidthRatio clusterNum finishTime} {
         for {set j 0} {$j < [expr ($finishTime / 10)]} {incr j} {
             set jn($i,$j) $jnl($k)
 
-            # ダイジェスト未取得ノーマルノードの色
+            # 新規参加ノードの色
             $jn($i,$j) color #800080
 
             incr k
         }
     }
 }
+
+proc replaceGateNodeInit {replaceGateNode replaceGateNodeList clusterNum gateNodeNum} {
+    upvar $replaceGateNode rgn $replaceGateNodeList rgnl
+    set k 0
+    for {set i 0} {$i < $clusterNum} {incr i} {
+        for {set j 0} {$j < $gateNodeNum} {incr j} {
+            set rgn($i,$j) $rgnl($k)
+
+            # 代わりのゲートノードの色
+            $rgn($i,$j) color #0000ff
+
+            incr k
+        }
+    }
+}
+
+proc replaceSemiGateNodeInit {replaceSemiGateNode replaceSemiGateNodeList clusterNum semiGateNodeNum} {
+    upvar $replaceSemiGateNode rsgn $replaceSemiGateNodeList rsgnl
+    set k 0
+    for {set i 0} {$i < $clusterNum} {incr i} {
+        for {set j 0} {$j < $semiGateNodeNum} {incr j} {
+            set rsgn($i,$j) $rsgnl($k)
+
+            # 代わりのセミゲートノードの色
+            $rsgn($i,$j) color #4169e1
+
+            incr k
+        }
+    }
+}
+
+proc replaceDigestNodeInit {replaceDigestNode replaceDigestNodeList clusterNum digestNodeNum} {
+    upvar $replaceDigestNode rdn $replaceDigestNodeList rdnl
+    set k 0
+    for {set i 0} {$i < $clusterNum} {incr i} {
+        for {set j 0} {$j < $digestNodeNum} {incr j} {
+            set rdn($i,$j) $rdnl($k)
+
+            # 代わりのダイジェストノードの色
+            $rdn($i,$j) color #00bfff
+
+            incr k
+        }
+    }
+}
+
 
 # ノード間の接続
 # 常に低いノード側の帯域幅で接続
@@ -424,7 +480,7 @@ puts "ダイジェスト取得済みノーマルノード: \t$getDigestNomalNum"
 ratioSetting bandwidthRatio commentRatio $clusterNum $userNum
 
 # 各ノードリストのinit処理
-nodeListInit nodeList nodeListForBandwidth joinNodeList $ns $userNum $finishTime $clusterNum
+nodeListInit nodeList nodeListForBandwidth joinNodeList replaceGateNodeList replaceSemiGateNodeList replaceDigestNodeList $ns $userNum $finishTime $clusterNum $digestNodeNum $gateNodeNum $semiGateNodeNum
 bandwidthListInit bandwidthList bandwidthRatio nodeListForBandwidth $ns $userNum
 commentListInit commentList commentRatio nodeList $ns $userNum
 nodeListForBandwidthShuffle nodeListForBandwidth $userNum
@@ -437,6 +493,9 @@ gateNodeInit gateNode sortedBandwidthList $clusterNum $gateNodeNum
 semiGateNodeInit semiGateNode sortedBandwidthList gateNode $clusterNum $semiGateNodeNum
 nomalNodeInit nomalNotDigestNode nomalDigestNode gateNode semiGateNode sortedBandwidthList $clusterNum $notGetDigestNomalNum $getDigestNomalNum
 joinNodeInit joinNode joinNodeList bandwidthRatio $clusterNum $finishTime
+replaceGateNodeInit replaceGateNode replaceGateNodeList $clusterNum $gateNodeNum
+replaceSemiGateNodeInit replaceSemiGateNode replaceSemiGateNodeList $clusterNum $semiGateNodeNum
+replaceDigestNodeInit replaceDigestNode replaceDigestNodeList $clusterNum $digestNodeNum
 
 puts "\nノードの数\n"
 puts "ダイジェストノード: \t\t\t[array size digestNode]"

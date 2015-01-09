@@ -77,16 +77,36 @@ proc ratioSetting {bandwidthRatio commentRatio clusterNum userNum} {
     copy tempCommentRatio cr
 }
 
-proc nodeListInit {nodeList nodeListForBandwidth joinNodeList ns userNum finishTime clusterNum} {
-    upvar $nodeList nl $nodeListForBandwidth nlfb $joinNodeList jnl
+proc nodeListInit {nodeList nodeListForBandwidth joinNodeList replaceGateNodeList replaceSemiGateNodeList replaceDigestNodeList ns userNum finishTime clusterNum digestNodeNum gateNodeNum semiGateNodeNum} {
+    upvar $nodeList nl $nodeListForBandwidth nlfb $joinNodeList jnl $replaceGateNodeList rgnl $replaceSemiGateNodeList rsgnl $replaceDigestNodeList rdnl
+
+    # 既存ノード
     for {set i 0} {$i < $userNum} {incr i} {
         set nl($i) [$ns node]
         set nlfb($i) $nl($i)
     }
 
+    # 新規参加ノード
     for {set i 0} {$i < [expr $finishTime * $clusterNum / 10]} {incr i} {
         set jnl($i) [$ns node]
     }
+
+    # 代わりのノード
+    # ゲートノード
+    for {set i 0} {$i < [expr $gateNodeNum*$clusterNum]} {incr i} {
+        set rgnl($i) [$ns node]
+    }
+
+    # セミゲートノード
+    for {set i 0} {$i < [expr $semiGateNodeNum*$clusterNum]} {incr i} {
+        set rsgnl($i) [$ns node]
+    }
+
+    # ダイジェストノード
+    for {set i 0} {$i < [expr $digestNodeNum*$clusterNum]} {incr i} {
+        set rdnl($i) [$ns node]
+    }
+
 }
 
 proc bandwidthListInit {bandwidthList bandwidthRatio nodeListForBandwidth ns userNum} {
