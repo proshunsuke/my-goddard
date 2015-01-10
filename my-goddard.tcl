@@ -67,6 +67,7 @@ set commentList(0) ""
 # ダイジェスト以外のソートされた帯域幅ノードリスト
 set sortedBandwidthList(0) ""
 
+
 # goddardのための変数宣言
 set goddard(0) ""
 set gplayer(0) ""
@@ -248,8 +249,8 @@ proc replaceDigestNodeInit {replaceDigestNode replaceDigestNodeList clusterNum d
 # 常に低いノード側の帯域幅で接続
 
 # 帯域幅の設定する必要あり
-proc connectGateNodeInCluster {gateNode semiGateNode bandwidthList rootNode ns gateNodeNum clusterNum selfClusterNum} {
-    upvar $gateNode gn $semiGateNode sgn $bandwidthList bl
+proc connectGateNodeInCluster {gateNode semiGateNode replaceGateNode bandwidthList rootNode ns gateNodeNum clusterNum selfClusterNum} {
+    upvar $gateNode gn $semiGateNode sgn $replaceGateNode rgn $bandwidthList bl
     # 配信者ノード
     for {set i 0} {$i < $gateNodeNum} {incr i} {
         $ns duplex-link $gn($selfClusterNum,$i) $rootNode $bl($gn($selfClusterNum,$i))Mb 500ms DropTail
@@ -270,6 +271,9 @@ proc connectGateNodeInCluster {gateNode semiGateNode bandwidthList rootNode ns g
     for {set i 0} {$i < $gateNodeNum} {incr i} {
         set bandwidth [returnLowBandwidth bl $gn($selfClusterNum,$i) $sgn($selfClusterNum,$i)]
         $ns duplex-link $gn($selfClusterNum,$i) $sgn($selfClusterNum,$i) [expr $bandwidth]Mb 100ms DropTail
+
+        # 代わりのゲートノードの帯域幅設定
+        set bl($rgn($selfClusterNum,$i)) $bl($sgn($selfClusterNum,$i))
     }
 }
 
@@ -406,6 +410,136 @@ proc connectJoinNode {joinNode nomalDigestNode nomalNotDigestNode bandwidthList 
     }
 }
 
+# 代わりのゲートノード
+proc connectReplaceGateNodeInCluster {gateNode semiGateNode replaceGateNode bandwidthList rootNode ns gateNodeNum clusterNum selfClusterNum} {
+    upvar $gateNode gn $semiGateNode sgn $replaceGateNode rgn $bandwidthList bl
+    # 配信者ノード
+    for {set i 0} {$i < $gateNodeNum} {incr i} {
+        $ns duplex-link $rgn($selfClusterNum,$i) $rootNode $bl($rgn($selfClusterNum,$i))Mb 500ms DropTail
+    }
+
+    # ゲートノード同士：１→２　２→３　３→１
+    for {set i 0} {$i < $gateNodeNum} {incr i} {
+        if { [expr $i+1] >= $gateNodeNum } {
+            set bandwidth [returnLowBandwidth bl $rgn($selfClusterNum,$i) $gn($selfClusterNum,[expr $i+1-$gateNodeNum])]
+            $ns duplex-link $rgn($selfClusterNum,$i) $gn($selfClusterNum,[expr $i+1-$gateNodeNum]) [expr $bandwidth]Mb 100ms DropTail
+        } else {
+            set bandwidth [returnLowBandwidth bl $rgn($selfClusterNum,$i) $gn($selfClusterNum,[expr $i+1])]
+            $ns duplex-link $rgn($selfClusterNum,$i) $gn($selfClusterNum,[expr $i+1]) [expr $bandwidth]Mb 100ms DropTail
+        }
+    }
+
+    # ゲートノードとセミゲートノード
+    for {set i 0} {$i < $gateNodeNum} {incr i} {
+        set bandwidth [returnLowBandwidth bl $rgn($selfClusterNum,$i) $sgn($selfClusterNum,$i)]
+        $ns duplex-link $rgn($selfClusterNum,$i) $sgn($selfClusterNum,$i) [expr $bandwidth]Mb 100ms DropTail
+    }
+}
+
+# 代わりのゲートノード
+proc connectReplaceGateNodeOutside {gateNode replaceGateNode bandwidthList nsArg clusterNum gateNodeNum selfIndexNum} {
+    upvar $gateNode gn $replaceGateNode rgn $bandwidthList bl $nsArg ns
+    # クラスタ外のゲートノード同士：１→２ ２→３... 7→１
+    for {set i 0} {$i < $clusterNum} {incr i} {
+        if { [expr $i+1] >= $clusterNum } {
+            set bandwidth [returnLowBandwidth bl $rgn($i,$selfIndexNum) $gn([expr $i+1-$clusterNum],$selfIndexNum)]
+            $ns duplex-link $rgn($i,$selfIndexNum) $gn([expr $i+1-$clusterNum],$selfIndexNum) [expr $bandwidth]Mb 100ms DropTail
+        } else {
+            set bandwidth [returnLowBandwidth bl $rgn($i,$selfIndexNum) $gn([expr $i+1],$selfIndexNum)]
+            $ns duplex-link $rgn($i,$selfIndexNum) $gn([expr $i+1],$selfIndexNum) [expr $bandwidth]Mb 100ms DropTail
+        }
+    }
+}
+
+# 代わりのセミゲートノード
+
+proc replaceSemiGateNodeBandwitdhSetting {nomalDigestNode replaceSemiGateNode sortedBandwidthList bandwidthList clusterNum} {
+    upvar $nomalDigestNode ndn $replaceSemiGateNode rsgn $sortedBandwidthList sbl $bandwidthList bl
+
+    for {set i 0} {$i < $clusterNum} {incr i} {
+        set rsgnI 0
+        for {set j 0} {$j < [expr [array size sbl] - 1]} {incr j} {
+            set k 0
+            while { [array get ndn $i,$k] != []} {
+                if {[array get rsgn $i,$rsgnI] == []} { break }
+                if {$ndn($i,$k) == $sbl($j)} {
+                    set bl($rsgn($i,$rsgnI)) $ndn($i,$k)
+                    incr rsgnI
+                }
+                incr k
+            }
+        }
+    }
+}
+
+proc connectReplaceSemiGateNode {semiGateNode digestNode nomalDigestNode nomalNotDigestNode replaceSemiGateNode bandwidthList ns clusterNum semiGateNodeNum notGetDigestNomalNum getDigestNomalNum selfIndexNum } {
+    upvar $semiGateNode sgn $digestNode dn $nomalDigestNode ndn $nomalNotDigestNode nndn $bandwidthList bl $replaceSemiGateNode rsgn
+    # ダイジェストノード
+    for {set i 0} {$i < $semiGateNodeNum}  {incr i} {
+        if {[array get dn $selfIndexNum,[expr $i*2]] == []} {
+                    continue
+        }
+        set bandwidth [returnLowBandwidth bl $rsgn($selfIndexNum,$i) $dn($selfIndexNum,[expr $i*2])]
+        $ns duplex-link $rsgn($selfIndexNum,$i) $dn($selfIndexNum,[expr $i*2]) [expr $bandwidth]Mb 100ms DropTail
+        if {[array get dn $selfIndexNum,[expr $i*2+1]] == []} {
+                    continue
+        }
+        set bandwidth [returnLowBandwidth bl $rsgn($selfIndexNum,$i) $dn($selfIndexNum,[expr $i*2+1])]
+        $ns duplex-link $rsgn($selfIndexNum,$i) $dn($selfIndexNum,[expr $i*2+1]) [expr $bandwidth]Mb 100ms DropTail
+    }
+
+    # ノーマルノード
+    for {set i 0} {$i < $semiGateNodeNum}  {incr i} {
+        set digestBorderNum [expr int(($notGetDigestNomalNum+$getDigestNomalNum)*rand())]
+        if {$digestBorderNum >= $notGetDigestNomalNum} {
+            set bandwidth [returnLowBandwidth bl $rsgn($selfIndexNum,$i) $ndn($selfIndexNum,[expr $digestBorderNum-$notGetDigestNomalNum])]
+            $ns duplex-link $rsgn($selfIndexNum,$i) $ndn($selfIndexNum,[expr $digestBorderNum-$notGetDigestNomalNum]) [expr $bandwidth]Mb 100ms DropTail
+        } else {
+            set bandwidth [returnLowBandwidth bl $rsgn($selfIndexNum,$i) $nndn($selfIndexNum,$digestBorderNum)]
+            $ns duplex-link $rsgn($selfIndexNum,$i) $nndn($selfIndexNum,$digestBorderNum) [expr $bandwidth]Mb 100ms DropTail
+        }
+    }
+}
+
+# 代わりのダイジェストノード
+
+proc replaceDigestNodeBandwitdhSetting {nomalDigestNode replaceDigestNode commentList bandwidthList clusterNum} {
+    upvar $nomalDigestNode ndn $replaceDigestNode rdn $commentList cl $bandwidthList bl
+    set i 0
+    set num [expr [array size cl] - 1]
+    foreach {index val} [array get cl] {
+        set tcl($num) $index
+        decr num
+    }
+
+    for {set i 0} {$i < $clusterNum} {incr i} {
+        set rdnI 0
+        for {set j 0} {$j < [expr [array size tcl] - 1]} {incr j} {
+            set k 0
+            while { [array get ndn $i,$k] != []} {
+                if {[array get rdn $i,$rdnI] == []} { break }
+                if {$ndn($i,$k) == $tcl($j)} {
+                    set bl($rdn($i,$rdnI)) $ndn($i,$k)
+                    incr rdnI
+                }
+                incr k
+            }
+        }
+    }
+}
+
+proc connectReplaceDigestNode {digestNode nomalNotDigestNode replaceDigestNode bandwidthList ns notGetDigestNomalNum getDigestNomalNum digestNodeNum selfIndexNum } {
+    upvar $digestNode dn $nomalNotDigestNode nndn $bandwidthList bl $replaceDigestNode rdn
+    # ダイジェスト未取得ノーマルノード
+    for {set i 0} {$i < $digestNodeNum}  {incr i} {
+        for {set j 0} {$j < $notGetDigestNomalNum} {incr j} {
+            set bandwidth [returnLowBandwidth bl $rdn($selfIndexNum,$i) $nndn($selfIndexNum,$j)]
+            $ns duplex-link $rdn($selfIndexNum,$i) $nndn($selfIndexNum,$j) [expr $bandwidth]Mb 100ms DropTail
+        }
+    }
+}
+
+
 #Define a 'finish' procedure
 proc finish {} {
     global ns f gCount sfile userNum
@@ -479,11 +613,13 @@ puts "ダイジェスト取得済みノーマルノード: \t$getDigestNomalNum"
 
 ratioSetting bandwidthRatio commentRatio $clusterNum $userNum
 
+
 # 各ノードリストのinit処理
 nodeListInit nodeList nodeListForBandwidth joinNodeList replaceGateNodeList replaceSemiGateNodeList replaceDigestNodeList $ns $userNum $finishTime $clusterNum $digestNodeNum $gateNodeNum $semiGateNodeNum
 bandwidthListInit bandwidthList bandwidthRatio nodeListForBandwidth $ns $userNum
 commentListInit commentList commentRatio nodeList $ns $userNum
 nodeListForBandwidthShuffle nodeListForBandwidth $userNum
+
 
 # 各役割のinit処理
 rootNodeInit rootNode $ns
@@ -496,6 +632,7 @@ joinNodeInit joinNode joinNodeList bandwidthRatio $clusterNum $finishTime
 replaceGateNodeInit replaceGateNode replaceGateNodeList $clusterNum $gateNodeNum
 replaceSemiGateNodeInit replaceSemiGateNode replaceSemiGateNodeList $clusterNum $semiGateNodeNum
 replaceDigestNodeInit replaceDigestNode replaceDigestNodeList $clusterNum $digestNodeNum
+
 
 puts "\nノードの数\n"
 puts "ダイジェストノード: \t\t\t[array size digestNode]"
@@ -513,18 +650,34 @@ $ns namtrace-all $nf
 # 一時的にノードを削除していたので帯域幅リストを元に戻す
 copy temporalBandwidthList bandwidthList
 
-# ゲートノードの数実行
-for {set i 0} {$i < $gateNodeNum} {incr i} {
-    connectGateNodeOutside gateNode bandwidthList ns $clusterNum $gateNodeNum $i
-}
 
-# クラスタの数実行
+# クラスタ内部接続(クラスタの数実行)
 for {set i 0} {$i < $clusterNum} {incr i} {
-    connectGateNodeInCluster gateNode semiGateNode bandwidthList $rootNode $ns $gateNodeNum $clusterNum $i
+    connectGateNodeInCluster gateNode semiGateNode replaceGateNode bandwidthList $rootNode $ns $gateNodeNum $clusterNum $i
     connectSemiGateNode semiGateNode digestNode nomalDigestNode nomalNotDigestNode bandwidthList $ns $clusterNum $semiGateNodeNum $notGetDigestNomalNum $getDigestNomalNum $i
     connectDigestNode digestNode nomalNotDigestNode bandwidthList $ns $notGetDigestNomalNum $getDigestNomalNum $digestNodeNum $i
     connectNomalNode nomalDigestNode nomalNotDigestNode bandwidthList $ns $clusterNum $connectNomalNodeRate $notGetDigestNomalNum $getDigestNomalNum $nomalNodeNum $i
     connectJoinNode joinNode nomalDigestNode nomalNotDigestNode bandwidthList $ns $clusterNum $joinNodeNum $nomalNodeNum $i
+
+    # 代わり
+    connectReplaceGateNodeInCluster gateNode semiGateNode replaceGateNode bandwidthList $rootNode $ns $gateNodeNum $clusterNum $i
+}
+
+# クラスタ外部接続(ゲートノードの数実行)
+for {set i 0} {$i < $gateNodeNum} {incr i} {
+    connectGateNodeOutside gateNode bandwidthList ns $clusterNum $gateNodeNum $i
+
+    # 代わり
+    connectReplaceGateNodeOutside gateNode replaceGateNode bandwidthList ns $clusterNum $gateNodeNum $i
+}
+
+# 代わり
+replaceSemiGateNodeBandwitdhSetting nomalDigestNode replaceSemiGateNode sortedBandwidthList bandwidthList $clusterNum
+replaceDigestNodeBandwitdhSetting nomalDigestNode replaceDigestNode commentList bandwidthList $clusterNum
+# クラスタ内部接続(クラスタの数実行, 代わり)
+for {set i 0} {$i < $clusterNum} {incr i} {
+    connectReplaceSemiGateNode semiGateNode digestNode nomalDigestNode nomalNotDigestNode replaceSemiGateNode bandwidthList $ns $clusterNum $semiGateNodeNum $notGetDigestNomalNum $getDigestNomalNum $i
+    connectReplaceDigestNode digestNode nomalNotDigestNode replaceDigestNode bandwidthList $ns $notGetDigestNomalNum $getDigestNomalNum $digestNodeNum $i
 }
 
 createNomalNodeStream nomalDigestNode nomalNotDigestNode digestNode goddard gplayer sfile gCount $rootNode $ns $clusterNum $getDigestNomalNum $notGetDigestNomalNum $digestNodeNum
