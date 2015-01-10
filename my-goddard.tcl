@@ -1,5 +1,5 @@
 #NS simulator object
-set ns [new Simulator]
+set ns [new Simulator -multicast on]
 
 # デフォルトの値はここで定義
 source my-goddard-default.tcl
@@ -71,8 +71,16 @@ set sortedBandwidthList(0) ""
 # goddardのための変数宣言
 set goddard(0) ""
 set gplayer(0) ""
-set sfile(0) ""
+# set sfile(0) ""
 set gCount 0
+
+# グループ
+set mproto ""
+set mrthandlee ""
+set group ""
+set udp ""
+set cbr ""
+set sfile ""
 
 # my-goddardのための関数
 
@@ -377,14 +385,14 @@ proc connectJoinNode {joinNode nomalDigestNode nomalNotDigestNode bandwidthList 
 
     set i 0
     while {[array get ndn $selfIndexNum,$i] != []} {
-        $ns duplex-link $jn($selfIndexNum,$i) $ndn($selfIndexNum,$i) bl($ndn($selfIndexNum,$i))Mb 100ms DropTail
+        $ns duplex-link $jn($selfIndexNum,$i) $ndn($selfIndexNum,$i) $bl($ndn($selfIndexNum,$i))Mb 100ms DropTail
         incr i
     }
 
     # joinNodeとnomalNotDigestNode
     set j 0
     while {[array get nndn $selfIndexNum,$j] != [] && [array get jn $selfIndexNum,$i] != []} {
-        $ns duplex-link $jn($selfIndexNum,$i) $nndn($selfIndexNum,$j) bl($ndn($selfIndexNum,$j))Mb 100ms DropTail
+        $ns duplex-link $jn($selfIndexNum,$i) $nndn($selfIndexNum,$j) $bl($ndn($selfIndexNum,$j))Mb 100ms DropTail
         incr i
     }
 
@@ -539,6 +547,50 @@ proc connectReplaceDigestNode {digestNode nomalNotDigestNode replaceDigestNode b
     }
 }
 
+proc UDPStreamInit {mproto mrthandle group udp cbr rcvr sfile ns rootNode } {
+    upvar $mproto mp $mrthandle mh $group g $udp u $cbr c $rcvr r $sfile sf
+    set mp DM
+    set mh [$ns mrtproto $mp {}]
+    set g [Node allocaddr]
+    set u [new Agent/UDP]
+    $u set dst_addr_ $g
+    $u set dst_port_ 0
+    $u set class_ 1
+
+    set sf [open stream-udp.tr w]
+    $ns attach-agent $rootNode $u
+    set c [new Application/Traffic/CBR]
+    $c attach-agent $u
+
+    set r [new Agent/LossMonitor]
+}
+
+proc attachInit {nodeList joinNodeList replaceGateNodeList replaceSemiGateNodeList replaceDigestNodeList ns rcvr group} {
+    upvar $nodeList nl $joinNodeList jnl $replaceGateNodeList rgnl $replaceSemiGateNodeList rsgnl $replaceDigestNodeList rdnl
+    for {set i 0} {$i < [expr [array size nl] - 1]} {incr i} {
+        $ns attach-agent $nl($i) $rcvr
+        $ns at 0.0 "$nl($i) join-group $rcvr $group"
+    }
+
+    for {set i 0} {$i < [expr [array size rgnl] - 1]} {incr i} {
+        $ns attach-agent $rgnl($i) $rcvr
+        $ns at 0.1 "$rgnl($i) join-group $rcvr $group"
+        $ns at 0.2 "$rgnl($i) leave-group $rcvr $group"
+    }
+
+    for {set i 0} {$i < [expr [array size rsgnl] - 1]} {incr i} {
+        $ns attach-agent $rsgnl($i) $rcvr
+        $ns at 0.3 "$rsgnl($i) join-group $rcvr $group"
+        $ns at 0.4 "$rsgnl($i) leave-group $rcvr $group"
+    }
+
+    for {set i 0} {$i < [expr [array size rdnl] - 1]} {incr i} {
+        $ns attach-agent $rdnl($i) $rcvr
+        $ns at 0.5 "$rdnl($i) join-group $rcvr $group"
+        $ns at 0.6 "$rdnl($i) leave-group $rcvr $group"
+    }
+}
+
 
 #Define a 'finish' procedure
 proc finish {} {
@@ -574,10 +626,13 @@ proc finish {} {
         }
     }
 
-    for {set i 0} {$i < $gCount} {incr i} {
-        if { [info exists sfile($i)] } {
-            close $sfile($i)
-        }
+    # for {set i 0} {$i < $gCount} {incr i} {
+    #     if { [info exists sfile($i)] } {
+    #         close $sfile($i)
+    #     }
+    # }
+    if { [info exists sfile] } {
+        close $sfile
     }
 
     close $f
@@ -612,7 +667,6 @@ puts "ダイジェスト未取得ノーマルノード: \t$notGetDigestNomalNum"
 puts "ダイジェスト取得済みノーマルノード: \t$getDigestNomalNum"
 
 ratioSetting bandwidthRatio commentRatio $clusterNum $userNum
-
 
 # 各ノードリストのinit処理
 nodeListInit nodeList nodeListForBandwidth joinNodeList replaceGateNodeList replaceSemiGateNodeList replaceDigestNodeList $ns $userNum $finishTime $clusterNum $digestNodeNum $gateNodeNum $semiGateNodeNum
@@ -680,16 +734,36 @@ for {set i 0} {$i < $clusterNum} {incr i} {
     connectReplaceDigestNode digestNode nomalNotDigestNode replaceDigestNode bandwidthList $ns $notGetDigestNomalNum $getDigestNomalNum $digestNodeNum $i
 }
 
-createNomalNodeStream nomalDigestNode nomalNotDigestNode digestNode goddard gplayer sfile gCount $rootNode $ns $clusterNum $getDigestNomalNum $notGetDigestNomalNum $digestNodeNum
+# createNomalNodeStream nomalDigestNode nomalNotDigestNode digestNode goddard gplayer sfile gCount joinNodeList $rootNode $ns $clusterNum $getDigestNomalNum $notGetDigestNomalNum $digestNodeNum $group
+
+# 新しく追加部分
+# createNomalNodeUDPStream nomalDigestNode nomalNotDigestNode digestNode udp cbr sfile udpCount joinNodeList $rootNode $ns $clusterNum $getDigestNomalNum $notGetDigestNomalNum $digestNodeNum $group
+
+# udp
+UDPStreamInit mproto mrthandle group udp cbr rcvr sfile $ns $rootNode
+
+attachInit nodeList joinNodeList replaceGateNodeList replaceSemiGateNodeList replaceDigestNodeList $ns $rcvr $group
 
 # test
-set finishTime 10
+set finishTime 2.0
 
 # Scehdule Simulation
-for {set i 0} {$i < $gCount} {incr i} {
-    $ns at 0 "$goddard($i) start"
-    $ns at $finishTime "$goddard($i) stop"
+# for {set i 0} {$i < $gCount} {incr i} {
+#     $ns at 0 "$goddard($i) start"
+#     $ns at $finishTime "$goddard($i) stop"
+# }
+
+proc createUDPStream {rootNode  udp cbr } {
+
 }
+
+
+# $ns attach-agent $joinNodeList(3) $rcvr
+# $ns at 1.2 "$joinNodeList(3) join-group $rcvr $group1"
+# $ns at 1.25 "$joinNodeList(3) leave-group $rcvr $group1"
+# $ns at 1.3 "$joinNodeList(3) join-group $rcvr $group1"
+
+$ns at 1.1 "$cbr start"
 
 $ns at $finishTime "finish"
 

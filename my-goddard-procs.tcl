@@ -174,31 +174,65 @@ proc sortBandwidthList {sortedBandwidthList bandwidthRatio bandwidthList} {
 # Setup Goddard Streaming
 
 # goddardストリーミング生成関数
-proc createGoddard { goddard gplayer sfile gCount ns l_node r_node } {
-    upvar $goddard gd $gplayer gp $sfile sf $gCount gc
+proc createGoddard { goddard gplayer sfile gCount joinNodeList ns l_node r_node group} {
+    upvar $goddard gd $gplayer gp $sfile sf $gCount gc $joinNodeList jnl
     set gs($gc) [new GoddardStreaming $ns $l_node $r_node UDP 1000 $gc]
     set gd($gc) [$gs($gc) getobject goddard]
     set gp($gc) [$gs($gc) getobject gplayer]
     $gp($gc) set upscale_interval_ 30.0
     set sf($gc) [open stream-udp.tr w]
     $gp($gc) attach $sf($gc)
+
+    $gs($gc) set dst_addr_ $group
+    $gs($gc) set dst_port_ 0
+
     incr gc
     return
 }
 
+
 # create goddard
 
-proc createNomalNodeStream {nomalDigestNode nomalNotDigestNode digestNode goddard gplayer sfile gCount rootNode ns clusterNum getDigestNomalNum notGetDigestNomalNum digestNodeNum} {
-    upvar $nomalDigestNode ndn $nomalNotDigestNode nndn $digestNode dn $goddard gd $gplayer gp $sfile sf $gCount gc
+proc createNomalNodeStream {nomalDigestNode nomalNotDigestNode digestNode goddard gplayer sfile gCount joinNodeList rootNode ns clusterNum getDigestNomalNum notGetDigestNomalNum digestNodeNum group} {
+    upvar $nomalDigestNode ndn $nomalNotDigestNode nndn $digestNode dn $goddard gd $gplayer gp $sfile sf $gCount gc $joinNodeList jnl
     for {set i 0} {$i < $clusterNum} {incr i} {
         for {set j 0} {$j < $getDigestNomalNum} {incr j} {
-            createGoddard gd gp sf gc $ns $rootNode $ndn($i,$j)
+            createGoddard gd gp sf gc jnl $ns $rootNode $ndn($i,$j) $group
         }
         for {set j 0} {$j < $notGetDigestNomalNum} {incr j} {
-            createGoddard gd gp sf gc $ns $rootNode $nndn($i,$j)
+            createGoddard gd gp sf gc jnl $ns $rootNode $nndn($i,$j) $groupa
         }
         for {set j 0} {$j < $digestNodeNum} {incr j} {
-            createGoddard gd gp sf gc $ns $rootNode $dn($i,$j)
+            createGoddard gd gp sf gc jnl $ns $rootNode $dn($i,$j) $group
+        }
+    }
+}
+
+proc createUDP {udp cbr sfile udpCount ns l_node r_node group} {
+    upvar $udp u $cbr c $sfile sf $udpCount uc
+    set u($uc) [new Agent/UDP]
+    set sf($uc) [open stream-udp.tr w]
+    $u($uc) attach $sf($uc)
+    $ns attach-agent $l_node $u($uc)
+    $u($uc) set dst_addr_ $group
+    $u($uc) set dst_port_ 0
+    set c($uc) [new Application/Traffic/CBR]
+    $c($uc) attach-agent $u($uc)
+
+    incr uc
+}
+
+proc createNomalNodeUDPStream {nomalDigestNode nomalNotDigestNode digestNode udp cbr sfile udpCount joinNodeList rootNode ns clusterNum getDigestNomalNum notGetDigestNomalNum digestNodeNum group} {
+    upvar $nomalDigestNode ndn $nomalNotDigestNode nndn $digestNode dn $udp u $cbr c $sfile sf $udpCount uc $joinNodeList jnl
+    for {set i 0} {$i < $clusterNum} {incr i} {
+        for {set j 0} {$j < $getDigestNomalNum} {incr j} {
+            createUDP u c sf uc $ns $rootNode $ndn($i,$j) $group
+        }
+        for {set j 0} {$j < $notGetDigestNomalNum} {incr j} {
+            createUDP u c sf uc $ns $rootNode $nndn($i,$j) $group
+        }
+        for {set j 0} {$j < $digestNodeNum} {incr j} {
+            createUDP u c sf uc $ns $rootNode $dn($i,$j) $group
         }
     }
 }
