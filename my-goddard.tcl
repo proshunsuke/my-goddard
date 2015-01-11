@@ -745,7 +745,7 @@ UDPStreamInit mproto mrthandle group udp cbr rcvr sfile $ns $rootNode
 attachInit nodeList joinNodeList replaceGateNodeList replaceSemiGateNodeList replaceDigestNodeList $ns $rcvr $group
 
 # test
-set finishTime 2.0
+set finishTime 5.0
 
 # Scehdule Simulation
 # for {set i 0} {$i < $gCount} {incr i} {
