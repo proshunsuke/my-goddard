@@ -81,6 +81,8 @@ set group ""
 set udp ""
 set cbr ""
 set sfile ""
+set startTime 0.0
+set joinInterval 10.0
 
 # my-goddardのための関数
 
@@ -565,32 +567,59 @@ proc UDPStreamInit {mproto mrthandle group udp cbr rcvr sfile ns rootNode } {
     set r [new Agent/LossMonitor]
 }
 
-proc attachInit {nodeList joinNodeList replaceGateNodeList replaceSemiGateNodeList replaceDigestNodeList ns rcvr group} {
-    upvar $nodeList nl $joinNodeList jnl $replaceGateNodeList rgnl $replaceSemiGateNodeList rsgnl $replaceDigestNodeList rdnl
+proc attachInit {nodeList joinNodeList replaceGateNodeList replaceSemiGateNodeList replaceDigestNodeList startTime ns rcvr group} {
+    upvar $nodeList nl $joinNodeList jnl $replaceGateNodeList rgnl $replaceSemiGateNodeList rsgnl $replaceDigestNodeList rdnl $startTime st
+    set st 0.0
     for {set i 0} {$i < [expr [array size nl] - 1]} {incr i} {
         $ns attach-agent $nl($i) $rcvr
-        $ns at 0.0 "$nl($i) join-group $rcvr $group"
+        $ns at $st "$nl($i) join-group $rcvr $group"
+        set st [expr $st + 0.01]
     }
 
     for {set i 0} {$i < [expr [array size rgnl] - 1]} {incr i} {
         $ns attach-agent $rgnl($i) $rcvr
-        $ns at 0.1 "$rgnl($i) join-group $rcvr $group"
-        $ns at 0.2 "$rgnl($i) leave-group $rcvr $group"
+        $ns at $st "$rgnl($i) join-group $rcvr $group"
+        set st [expr $st + 0.01]
+        $ns at $st "$rgnl($i) leave-group $rcvr $group"
+        set st [expr $st + 0.01]
     }
 
     for {set i 0} {$i < [expr [array size rsgnl] - 1]} {incr i} {
         $ns attach-agent $rsgnl($i) $rcvr
-        $ns at 0.3 "$rsgnl($i) join-group $rcvr $group"
-        $ns at 0.4 "$rsgnl($i) leave-group $rcvr $group"
+        $ns at $st "$rsgnl($i) join-group $rcvr $group"
+        set st [expr $st + 0.01]
+        $ns at $st "$rsgnl($i) leave-group $rcvr $group"
+        set st [expr $st + 0.01]
     }
 
     for {set i 0} {$i < [expr [array size rdnl] - 1]} {incr i} {
         $ns attach-agent $rdnl($i) $rcvr
-        $ns at 0.5 "$rdnl($i) join-group $rcvr $group"
-        $ns at 0.6 "$rdnl($i) leave-group $rcvr $group"
+        $ns at $st "$rdnl($i) join-group $rcvr $group"
+        set st [expr $st + 0.01]
+        $ns at $st "$rdnl($i) leave-group $rcvr $group"
+        set st [expr $st + 0.01]
     }
 }
 
+proc newJoin {joinNodeList ns rcvr group startTime finishTime joinInterval} {
+    upvar $joinNodeList jnl
+    set joinTime [expr $startTime + 0.01]
+    copy jnl nl
+    set num [expr [array size jnl] - 1]
+    for {set i 0} {$i < [expr $num*5]} {incr i} {
+        set temp1 [expr int($num*rand())]
+        set temp2 [expr int($num*rand())]
+        set tempNode $nl($temp1)
+        set nl($temp1) $nl($temp2)
+        set nl($temp2) $tempNode
+    }
+    set k 0
+    while {$joinTime < $finishTime} {
+        $ns at $joinTime "$nl($k) join-group $rcvr $group"
+        set joinTime [expr $joinTime + $joinInterval]
+        incr k
+    }
+}
 
 #Define a 'finish' procedure
 proc finish {} {
@@ -742,10 +771,12 @@ for {set i 0} {$i < $clusterNum} {incr i} {
 # udp
 UDPStreamInit mproto mrthandle group udp cbr rcvr sfile $ns $rootNode
 
-attachInit nodeList joinNodeList replaceGateNodeList replaceSemiGateNodeList replaceDigestNodeList $ns $rcvr $group
+attachInit nodeList joinNodeList replaceGateNodeList replaceSemiGateNodeList replaceDigestNodeList startTime $ns $rcvr $group
 
 # test
-set finishTime 5.0
+set finishTime [expr $startTime + 4.0]
+
+newJoin joinNodeList $ns $rcvr $group $startTime $finishTime $joinInterval
 
 # Scehdule Simulation
 # for {set i 0} {$i < $gCount} {incr i} {
@@ -753,9 +784,11 @@ set finishTime 5.0
 #     $ns at $finishTime "$goddard($i) stop"
 # }
 
-proc createUDPStream {rootNode  udp cbr } {
+
+proc leaveNode {} {
 
 }
+
 
 
 # $ns attach-agent $joinNodeList(3) $rcvr
@@ -763,7 +796,7 @@ proc createUDPStream {rootNode  udp cbr } {
 # $ns at 1.25 "$joinNodeList(3) leave-group $rcvr $group1"
 # $ns at 1.3 "$joinNodeList(3) join-group $rcvr $group1"
 
-$ns at 1.1 "$cbr start"
+$ns at $startTime "$cbr start"
 
 $ns at $finishTime "finish"
 
