@@ -46,7 +46,6 @@ set replaceGateNodeNum 0
 set replaceSemiGateNodeNum 0
 set replaceDigestNodeNum 0
 
-
 # ノードリスト
 set nodeList(0) ""
 set nodeListForBandwidth(0) ""
@@ -54,6 +53,22 @@ set joinNodeList(0) ""
 set replaceGateNodeList(0) ""
 set replaceSemiGateNodeList(0) ""
 set replaceDigestNodeList(0) ""
+
+# 各ノードの種類のリスト
+# {node1: "digest", node2: "gate"...}
+set gateNodeTypeList(0) ""
+set semiGateNodeTypeList(0) ""
+set digestNodeTypeList(0) ""
+
+# 各ノードと代わりのノードリスト
+# {node1: replaceNode1, node2: replaceNode2...}
+set gateToReplaceList(0) ""
+set semiGateToReplaceList(0) ""
+set digestToReplaceList(0) ""
+
+# ゲートノードとセミゲートノードのノードリスト
+# {node1: replaceNode1, node2: replaceNode2...}
+set gateToSemiGateList(0) ""
 
 # 帯域幅ノードリスト(Mbps)
 set bandwidthList(0) ""
@@ -66,7 +81,6 @@ set commentList(0) ""
 
 # ダイジェスト以外のソートされた帯域幅ノードリスト
 set sortedBandwidthList(0) ""
-
 
 # goddardのための変数宣言
 set goddard(0) ""
@@ -82,13 +96,13 @@ set udp ""
 set cbr ""
 set sfile ""
 set startTime 0.0
-set joinInterval 10.0
+set joinLeaveInterval 10.0
 
 # my-goddardのための関数
 
 # この中で便宜上一時的に帯域幅リストからノードを削除している
-proc digestNodeInit {digestNode bandwidthList temporalBandwidthList nodeListForBandwidth nodeList userNum clusterNum digestNodeNum} {
-    upvar $digestNode dn $bandwidthList bl $temporalBandwidthList tbl $nodeListForBandwidth nlfb $nodeList nl
+proc digestNodeInit {digestNode digestNodeTypeList bandwidthList temporalBandwidthList nodeListForBandwidth nodeList userNum clusterNum digestNodeNum} {
+    upvar $digestNode dn $digestNodeTypeList dntl $bandwidthList bl $temporalBandwidthList tbl $nodeListForBandwidth nlfb $nodeList nl
 
     copy bl tbl
 
@@ -96,6 +110,7 @@ proc digestNodeInit {digestNode bandwidthList temporalBandwidthList nodeListForB
     for {set i 0} {$i < $clusterNum} {incr i} {
         for {set j 0} {$j < $digestNodeNum} {incr j} {
             set dn($i,$j) $nl($commentI)
+            set dntl($nl($commentI)) "digestNode"
 
             # 帯域幅リストからダイジェストノードを削除
             array unset bl $nl($commentI)
@@ -120,12 +135,13 @@ proc digestNodeInit {digestNode bandwidthList temporalBandwidthList nodeListForB
     return
 }
 
-proc gateNodeInit {gateNode sortedBandwidthList clusterNum gateNodeNum} {
-    upvar $gateNode gn $sortedBandwidthList sbl
+proc gateNodeInit {gateNode gateNodeTypeList sortedBandwidthList clusterNum gateNodeNum} {
+    upvar $gateNode gn $gateNodeTypeList gntl $sortedBandwidthList sbl
     set k 0
     for {set i 0} {$i < $clusterNum} {incr i} {
         for {set j 0} {$j < $gateNodeNum} {incr j} {
             set gn($i,$j) $sbl($k)
+            set gntl($sbl($k)) "gateNode"
 
             # ゲートノードの色
             $gn($i,$j) color #006400
@@ -136,12 +152,14 @@ proc gateNodeInit {gateNode sortedBandwidthList clusterNum gateNodeNum} {
     return
 }
 
-proc semiGateNodeInit {semiGateNode sortedBandwidthList gateNode clusterNum semiGateNodeNum} {
-    upvar $semiGateNode sgn $sortedBandwidthList sbl $gateNode gn
+proc semiGateNodeInit {semiGateNode semiGateNodeTypeList gateToSemiGateList sortedBandwidthList gateNode clusterNum semiGateNodeNum} {
+    upvar $semiGateNode sgn $semiGateNodeTypeList sgntl $gateToSemiGateList gtsgl $sortedBandwidthList sbl $gateNode gn
     set k [array size gn]
     for {set i 0} {$i < $clusterNum} {incr i} {
         for {set j 0} {$j < $semiGateNodeNum} {incr j} {
             set sgn($i,$j) $sbl($k)
+            set sgntl($sbl($k)) "semiGateNode"
+            set gtsgl($gn($i,$j)) $sgn($i,$j)
 
             # セミゲートノードの色
             $sgn($i,$j) color #00ff00
@@ -209,12 +227,13 @@ proc joinNodeInit {joinNode joinNodeList bandwidthRatio clusterNum finishTime} {
     }
 }
 
-proc replaceGateNodeInit {replaceGateNode replaceGateNodeList clusterNum gateNodeNum} {
-    upvar $replaceGateNode rgn $replaceGateNodeList rgnl
+proc replaceGateNodeInit {gateNode gateToReplaceList replaceGateNode replaceGateNodeList clusterNum gateNodeNum} {
+    upvar $gateNode gn $gateToReplaceList gtrl $replaceGateNode rgn $replaceGateNodeList rgnl
     set k 0
     for {set i 0} {$i < $clusterNum} {incr i} {
         for {set j 0} {$j < $gateNodeNum} {incr j} {
             set rgn($i,$j) $rgnl($k)
+            set gtrl($gn($i,$j)) $rgn($i,$j)
 
             # 代わりのゲートノードの色
             $rgn($i,$j) color #0000ff
@@ -224,12 +243,13 @@ proc replaceGateNodeInit {replaceGateNode replaceGateNodeList clusterNum gateNod
     }
 }
 
-proc replaceSemiGateNodeInit {replaceSemiGateNode replaceSemiGateNodeList clusterNum semiGateNodeNum} {
-    upvar $replaceSemiGateNode rsgn $replaceSemiGateNodeList rsgnl
+proc replaceSemiGateNodeInit {semiGateNode semiGateToReplaceList replaceSemiGateNode replaceSemiGateNodeList clusterNum semiGateNodeNum} {
+    upvar $semiGateNode sgn $semiGateToReplaceList sgtrl $replaceSemiGateNode rsgn $replaceSemiGateNodeList rsgnl
     set k 0
     for {set i 0} {$i < $clusterNum} {incr i} {
         for {set j 0} {$j < $semiGateNodeNum} {incr j} {
             set rsgn($i,$j) $rsgnl($k)
+            set sgtrl($sgn($i,$j)) $rsgn($i,$j)
 
             # 代わりのセミゲートノードの色
             $rsgn($i,$j) color #4169e1
@@ -239,12 +259,13 @@ proc replaceSemiGateNodeInit {replaceSemiGateNode replaceSemiGateNodeList cluste
     }
 }
 
-proc replaceDigestNodeInit {replaceDigestNode replaceDigestNodeList clusterNum digestNodeNum} {
-    upvar $replaceDigestNode rdn $replaceDigestNodeList rdnl
+proc replaceDigestNodeInit {digestNode digestToReplaceList replaceDigestNode replaceDigestNodeList clusterNum digestNodeNum} {
+    upvar $digestNode dn $digestToReplaceList dtrl $replaceDigestNode rdn $replaceDigestNodeList rdnl
     set k 0
     for {set i 0} {$i < $clusterNum} {incr i} {
         for {set j 0} {$j < $digestNodeNum} {incr j} {
             set rdn($i,$j) $rdnl($k)
+            set dtrl($dn($i,$j)) $rdn($i,$j)
 
             # 代わりのダイジェストノードの色
             $rdn($i,$j) color #00bfff
@@ -601,7 +622,8 @@ proc attachInit {nodeList joinNodeList replaceGateNodeList replaceSemiGateNodeLi
     }
 }
 
-proc newJoin {joinNodeList ns rcvr group startTime finishTime joinInterval} {
+# 参加時はn規定の時刻+0.01の時
+proc newJoin {joinNodeList ns rcvr group startTime finishTime joinLeaveInterval} {
     upvar $joinNodeList jnl
     set joinTime [expr $startTime + 0.01]
     copy jnl nl
@@ -616,14 +638,131 @@ proc newJoin {joinNodeList ns rcvr group startTime finishTime joinInterval} {
     set k 0
     while {$joinTime < $finishTime} {
         $ns at $joinTime "$nl($k) join-group $rcvr $group"
-        set joinTime [expr $joinTime + $joinInterval]
+        set joinTime [expr $joinTime + $joinLeaveInterval]
+        incr k
+    }
+}
+
+# 離脱時はn規定の時刻+0.02の時
+# 続けて代わりのノードが参加する時は+0.03の時
+proc leaveNode {nodeList joinNodeList replaceGateNodeList replaceSemiGateNodeList replaceDigestNodeList gateNodeTypeList semiGateNodeTypeList digestNodeTypeList gateToReplaceList semiGateToReplaceList digestToReplaceList gateToSemiGateList commentList startTime finishTime joinLeaveInterval ns rcvr group} {
+    upvar $nodeList nl $joinNodeList jnl $replaceGateNodeList rgnl $replaceSemiGateNodeList rsgnl $replaceDigestNodeList rdnl $gateNodeTypeList gntl $semiGateNodeTypeList sgntl $digestNodeTypeList dntl $gateToReplaceList gtrl $semiGateToReplaceList sgtrl $digestToReplaceList dtrl $gateToSemiGateList gtsgl $commentList cl
+    set num [expr [array size nl] - 1]
+    copy nl tnl
+
+    copy cl tcl
+
+    set selectNum 0
+    while {$selectNum < 24} {
+        set rand1 [expr int([expr [array size tnl] - 1]*rand())]
+        if {[array get tnl $rand1] == []} {
+            continue
+        }
+
+        if {[array get tcl $tnl($rand1)] == []} {
+            continue
+        }
+
+        set border [expr 1000*rand()]
+        if {$tcl($tnl($rand1)) == 25} {
+            if {$border > 990} {
+                set list($selectNum) $tnl($rand1)
+                array unset tnl $rand1
+                incr selectNum
+            }
+        } elseif {$tcl($tnl($rand1)) == 22} {
+            if {$border > 960} {
+                set list($selectNum) $tnl($rand1)
+                array unset tnl $rand1
+                incr selectNum
+            }
+        } elseif {$tcl($tnl($rand1)) == 20} {
+            if {$border > 930} {
+                set list($selectNum) $tnl($rand1)
+                array unset tnl $rand1
+                incr selectNum
+            }
+        } elseif {$tcl($tnl($rand1)) == 17} {
+            if {$border > 900} {
+                set list($selectNum) $tnl($rand1)
+                array unset tnl $rand1
+                incr selectNum
+            }
+        } elseif {$tcl($tnl($rand1)) == 15} {
+            if {$border > 800} {
+                set list($selectNum) $tnl($rand1)
+                array unset tnl $rand1
+                incr selectNum
+            }
+        } elseif {$tcl($tnl($rand1)) == 12} {
+            if {$border > 500} {
+                set list($selectNum) $tnl($rand1)
+                array unset tnl $rand1
+                incr selectNum
+            }
+        } elseif {$tcl($tnl($rand1)) == 10} {
+            if {$border > 400} {
+                set list($selectNum) $tnl($rand1)
+                array unset tnl $rand1
+                incr selectNum
+            }
+        } elseif {$tcl($tnl($rand1)) == 7} {
+            if {$border > 300} {
+                set list($selectNum) $tnl($rand1)
+                array unset tnl $rand1
+                incr selectNum
+            }
+        } elseif {$tcl($tnl($rand1)) == 5} {
+            if {$border > 100} {
+                set list($selectNum) $tnl($rand1)
+                array unset tnl $rand1
+                incr selectNum
+            }
+        } elseif {$tcl($tnl($rand1)) == 2} {
+            if {$border > 300} {
+                set list($selectNum) $tnl($rand1)
+                array unset tnl $rand1
+                incr selectNum
+            }
+        }
+    }
+
+    set k 0
+    set leaveTime [expr $startTime + 0.02]
+    while {$leaveTime < $finishTime} {
+        # digestNodeだったら
+        if {[array get dntl $list($k)] != []} {
+            if {$dntl($list($k)) == "digestNode"} {
+                $ns at $leaveTime "$list($k) leave-group $rcvr $group"
+                $ns at [expr $leaveTime + 0.01] "$dtrl($list($k)) join-group $rcvr $group"
+            }
+        }
+
+        if {[array get sgntl $list($k)] != []} {
+            if {$sgntl($list($k)) == "semiGateNode"} {
+                $ns at $leaveTime "$list($k) leave-group $rcvr $group"
+                $ns at [expr $leaveTime + 0.01] "$sgtrl($list($k)) join-group $rcvr $group"
+            }
+        }
+
+        if {[array get gntl $list($k)] != []} {
+            if {$gntl($list($k)) == "gateNode"} {
+                $ns at $leaveTime "$list($k) leave-group $rcvr $group"
+                $ns at [expr $leaveTime + 0.01] "$gtrl($list($k)) join-group $rcvr $group"
+
+                $ns at [expr $leaveTime + 0.02] "$gtsgl($list($k)) leave-group $rcvr $group"
+                $ns at [expr $leaveTime + 0.03] "$sgtrl($gtsgl($list($k))) join-group $rcvr $group"
+            }
+        }
+
+        set leaveTime [expr $leaveTime + $joinLeaveInterval]
         incr k
     }
 }
 
 #Define a 'finish' procedure
 proc finish {} {
-    global ns f gCount sfile userNum
+    global ns f sfile userNum
     $ns flush-trace
 
     set awkCode {
@@ -640,7 +779,7 @@ proc finish {} {
                     bytes_tcp += $6;
                 }
             }
-            else if ($8 == 3001) {
+            else if ($5 == "cbr") {
                 if ($2 >= t_end_udp) {
                     tput_udp = bytes_udp * 8 / ($2 - t_start_udp)/1000;
                     print $2, tput_udp >> "tput-udp.tr";
@@ -655,28 +794,29 @@ proc finish {} {
         }
     }
 
-    # for {set i 0} {$i < $gCount} {incr i} {
-    #     if { [info exists sfile($i)] } {
-    #         close $sfile($i)
-    #     }
-    # }
     if { [info exists sfile] } {
         close $sfile
     }
 
     close $f
 
+    puts "awk前"
+
     exec rm -f tput-tcp.tr tput-udp.tr
     exec touch tput-tcp.tr tput-udp.tr
     exec awk $awkCode out.tr
 
-    exec cp out.nam [append outNamName "out" $userNum ".nam"]
+    puts "awkしてcpする前"
+
     exec cp out.tr [append outTrName "out" $userNum ".tr"]
-    exec cp tput-tcp.tr [append tputTcpName "tput-tcp" $userNum ".tr"]
+    # exec cp tput-tcp.tr [append tputTcpName "tput-tcp" $userNum ".tr"]
     exec cp tput-udp.tr [append tputUdpName "tput-udp" $userNum ".tr"]
 
-    exec xgraph -bb -tk -m -x Seconds -y "Throughput (kbps)" tput-tcp.tr tput-udp.tr &
-    exec nam out.nam &
+    puts "cpしてグラフにする前"
+
+    exec xgraph -bb -tk -m -x Seconds -y "Throughput (kbps)" tput-udp.tr &
+
+    puts "終了"
 
     exit 0
 }
@@ -706,16 +846,15 @@ nodeListForBandwidthShuffle nodeListForBandwidth $userNum
 
 # 各役割のinit処理
 rootNodeInit rootNode $ns
-digestNodeInit digestNode bandwidthList temporalBandwidthList nodeListForBandwidth nodeList $userNum $clusterNum $digestNodeNum
+digestNodeInit digestNode digestNodeTypeList bandwidthList temporalBandwidthList nodeListForBandwidth nodeList $userNum $clusterNum $digestNodeNum
 sortBandwidthList sortedBandwidthList bandwidthRatio bandwidthList
-gateNodeInit gateNode sortedBandwidthList $clusterNum $gateNodeNum
-semiGateNodeInit semiGateNode sortedBandwidthList gateNode $clusterNum $semiGateNodeNum
+gateNodeInit gateNode gateNodeTypeList sortedBandwidthList $clusterNum $gateNodeNum
+semiGateNodeInit semiGateNode semiGateNodeTypeList gateToSemiGateList sortedBandwidthList gateNode $clusterNum $semiGateNodeNum
 nomalNodeInit nomalNotDigestNode nomalDigestNode gateNode semiGateNode sortedBandwidthList $clusterNum $notGetDigestNomalNum $getDigestNomalNum
 joinNodeInit joinNode joinNodeList bandwidthRatio $clusterNum $finishTime
-replaceGateNodeInit replaceGateNode replaceGateNodeList $clusterNum $gateNodeNum
-replaceSemiGateNodeInit replaceSemiGateNode replaceSemiGateNodeList $clusterNum $semiGateNodeNum
-replaceDigestNodeInit replaceDigestNode replaceDigestNodeList $clusterNum $digestNodeNum
-
+replaceGateNodeInit gateNode gateToReplaceList replaceGateNode replaceGateNodeList $clusterNum $gateNodeNum
+replaceSemiGateNodeInit semiGateNode semiGateToReplaceList replaceSemiGateNode replaceSemiGateNodeList $clusterNum $semiGateNodeNum
+replaceDigestNodeInit digestNode digestToReplaceList replaceDigestNode replaceDigestNodeList $clusterNum $digestNodeNum
 
 puts "\nノードの数\n"
 puts "ダイジェストノード: \t\t\t[array size digestNode]"
@@ -724,11 +863,9 @@ puts "セミゲートノード: \t\t\t[array size semiGateNode]"
 puts "ダイジェスト未取得ノーマルノード: \t[array size nomalNotDigestNode]"
 puts "ダイジェスト取得済みノーマルノード: \t[array size nomalDigestNode]"
 
-# namファイルの設定
+# トレースファイルの設定
 set f [open out.tr w]
 $ns trace-all $f
-set nf [open out.nam w]
-$ns namtrace-all $nf
 
 # 一時的にノードを削除していたので帯域幅リストを元に戻す
 copy temporalBandwidthList bandwidthList
@@ -763,38 +900,17 @@ for {set i 0} {$i < $clusterNum} {incr i} {
     connectReplaceDigestNode digestNode nomalNotDigestNode replaceDigestNode bandwidthList $ns $notGetDigestNomalNum $getDigestNomalNum $digestNodeNum $i
 }
 
-# createNomalNodeStream nomalDigestNode nomalNotDigestNode digestNode goddard gplayer sfile gCount joinNodeList $rootNode $ns $clusterNum $getDigestNomalNum $notGetDigestNomalNum $digestNodeNum $group
-
-# 新しく追加部分
-# createNomalNodeUDPStream nomalDigestNode nomalNotDigestNode digestNode udp cbr sfile udpCount joinNodeList $rootNode $ns $clusterNum $getDigestNomalNum $notGetDigestNomalNum $digestNodeNum $group
-
 # udp
 UDPStreamInit mproto mrthandle group udp cbr rcvr sfile $ns $rootNode
 
 attachInit nodeList joinNodeList replaceGateNodeList replaceSemiGateNodeList replaceDigestNodeList startTime $ns $rcvr $group
 
 # test
-set finishTime [expr $startTime + 4.0]
+set finishTime [expr $startTime + 25.0]
 
-newJoin joinNodeList $ns $rcvr $group $startTime $finishTime $joinInterval
+newJoin joinNodeList $ns $rcvr $group $startTime $finishTime $joinLeaveInterval
 
-# Scehdule Simulation
-# for {set i 0} {$i < $gCount} {incr i} {
-#     $ns at 0 "$goddard($i) start"
-#     $ns at $finishTime "$goddard($i) stop"
-# }
-
-
-proc leaveNode {} {
-
-}
-
-
-
-# $ns attach-agent $joinNodeList(3) $rcvr
-# $ns at 1.2 "$joinNodeList(3) join-group $rcvr $group1"
-# $ns at 1.25 "$joinNodeList(3) leave-group $rcvr $group1"
-# $ns at 1.3 "$joinNodeList(3) join-group $rcvr $group1"
+leaveNode nodeList joinNodeList replaceGateNodeList replaceSemiGateNodeList replaceDigestNodeList gateNodeTypeList semiGateNodeTypeList digestNodeTypeList gateToReplaceList semiGateToReplaceList digestToReplaceList gateToSemiGateList commentList $startTime $finishTime $joinLeaveInterval $ns $rcvr $group
 
 $ns at $startTime "$cbr start"
 

@@ -28,9 +28,10 @@ BEGIN {
               bytes_tcp += pkt_size
           }
       }
-      else if ($8 == 3001) {
+      else if ($5 == "cbr") {
           if (time >= t_end_udp) {
               tput_udp = bytes_udp * 8 / (time - t_start_udp)/1000
+              print $2, tput_udp >> "join-leave-tput-udp.tr"
               udp_throughput += tput_udp
               t_start_udp = time
               t_end_udp = time + 2
