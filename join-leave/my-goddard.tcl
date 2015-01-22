@@ -906,7 +906,7 @@ UDPStreamInit mproto mrthandle group udp cbr rcvr sfile $ns $rootNode
 attachInit nodeList joinNodeList replaceGateNodeList replaceSemiGateNodeList replaceDigestNodeList startTime $ns $rcvr $group
 
 # test
-set finishTime [expr $startTime + 25.0]
+set finishTime [expr $startTime + 240.0]
 
 newJoin joinNodeList $ns $rcvr $group $startTime $finishTime $joinLeaveInterval
 
