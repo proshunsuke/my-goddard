@@ -1,0 +1,6 @@
+awk -f average.awk average-dig-0.1.tr
+Average Udp_Throughput[kbps] = 265.71
+awk -f average.awk average-dig-0.2.tr
+Average Udp_Throughput[kbps] = 573.12
+awk -f average.awk average-dig-0.3.tr
+Average Udp_Throughput[kbps] = 414.63

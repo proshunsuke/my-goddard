@@ -288,7 +288,6 @@ proc semiGateNodeInit {} {
     return
 }
 
-
 proc nomalNodeInit {} {
     global ns userNum clusterNum nomalDigestNode nomalNotDigestNode notGetDigestRate notGetDigestNomalNum getDigestNomalNum gateNode semiGateNode sortedBandwidthList
 

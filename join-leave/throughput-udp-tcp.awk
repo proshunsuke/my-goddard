@@ -28,9 +28,10 @@ BEGIN {
               bytes_tcp += pkt_size
           }
       }
-      else if ($8 == 3001) {
+      else if ($5 == "cbr") {
           if (time >= t_end_udp) {
               tput_udp = bytes_udp * 8 / (time - t_start_udp)/1000
+              print $2, tput_udp >> "join-leave-tput-udp.tr"
               udp_throughput += tput_udp
               t_start_udp = time
               t_end_udp = time + 2
@@ -44,7 +45,19 @@ BEGIN {
   }
 
   END {
-      printf("Average Udp_Throughput[kbps] = %.2f\n",(udp_throughput/udp_num))
-      printf("Average Tcp_Throughput[kbps] = %.2f\n",(tcp_throughput/tcp_num))
+      res = udp_throughput/udp_num
+      if (ARGV[1] == "out200.tr") {
+          user_n = 200
+      } else if (ARGV[1] == "out400.tr") {
+          user_n = 400
+      } else if (ARGV[1] == "out600.tr") {
+          user_n = 600
+      }  else if (ARGV[1] == "out800.tr") {
+          user_n = 800
+      }
+      system("echo " user_n " " res " >> average.tr");
+
+      printf("Average Udp_Throughput[kbps] = %.2f\n",(res))
+      # printf("Average Tcp_Throughput[kbps] = %.2f\n",(tcp_throughput/tcp_num))
   }
 
