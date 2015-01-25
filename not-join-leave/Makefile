@@ -71,6 +71,10 @@ gnuplot-average-compare-bw:
 	gnuplot average-compare-bw.plt
 	cp average-compare-bw.eps fig18.eps
 	cp fig18.eps $(img_path)
+gnuplot-average-hop-count:
+	gnuplot average-hop-count.plt
+	cp average-hop-count.eps fig19.eps
+	cp fig19.eps $(img_path)
 gnuplot-all:
 	make gnuplot-comment
 	make gnuplot-udp

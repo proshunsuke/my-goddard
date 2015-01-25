@@ -1,5 +1,5 @@
 #NS simulator object
-set ns [new Simulator]
+set ns [new Simulator -multicast on]
 
 # デフォルトの値はここで定義
 source my-goddard-default.tcl
@@ -8,7 +8,8 @@ source my-goddard-default.tcl
 source my-goddard-procs.tcl
 
 # 入力値(ユーザ数は必ず200の倍数)
-set userNum [lindex $argv 0]
+# set userNum [lindex $argv 0]
+set userNum 28
 
 # ユーザ数に応じて変化
 set clusterNum 0

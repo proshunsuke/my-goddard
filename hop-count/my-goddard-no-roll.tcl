@@ -48,112 +48,115 @@ set sfile(0) ""
 set gCount 0
 # my-goddard-no-rollのための関数
 proc nomalNodeInit {nomalDigestNode nomalNotDigestNode sortedBandwidthList clusterNum notGetDigestNomalNum getDigestNomalNum} {
-upvar $nomalDigestNode ndn $nomalNotDigestNode nndn $sortedBandwidthList sbl
-set k 0
-for {set i 0} {$i < $clusterNum} {incr i} {
-for {set j 0} {$j < $getDigestNomalNum} {incr j} {
-set ndn($i,$j) $sbl($k)
-# ダイジェスト取得ノーマルノードの色
-$ndn($i,$j) color orange
-incr k
-}
-}
-# 残りのノードは全てダイジェスト取得済みノーマルノードへ
-set k [expr $k]
-set limit [expr [array size sbl]-$k]
-for {set i 0} {$i < $limit} {incr i} {
-set ndn($i,$getDigestNomalNum) $sbl($k)
-# ダイジェスト取得ノーマルノードの色
-$ndn($i,$getDigestNomalNum) color orange
-incr k
-}
-return
+    upvar $nomalDigestNode ndn $nomalNotDigestNode nndn $sortedBandwidthList sbl
+    set k 0
+    for {set i 0} {$i < $clusterNum} {incr i} {
+        for {set j 0} {$j < $getDigestNomalNum} {incr j} {
+            set ndn($i,$j) $sbl($k)
+            # ダイジェスト取得ノーマルノードの色
+            $ndn($i,$j) color orange
+            incr k
+        }
+    }
+    # 残りのノードは全てダイジェスト取得済みノーマルノードへ
+    set k [expr $k]
+    set limit [expr [array size sbl]-$k]
+    for {set i 0} {$i < $limit} {incr i} {
+        set ndn($i,$getDigestNomalNum) $sbl($k)
+        # ダイジェスト取得ノーマルノードの色
+        $ndn($i,$getDigestNomalNum) color orange
+        incr k
+    }
+    return
 }
 proc connectNomalNode {nomalDigestNode nomalNotDigestNode bandwidthList rootNode ns clusterNum connectNomalNodeRate notGetDigestNomalNum getDigestNomalNum nomalNodeNum selfIndexNum } {
-upvar $nomalDigestNode ndn $nomalNotDigestNode nndn $bandwidthList bl
-# とりあえずリストに全部入れる
-for {set i 0} {$i < [expr $nomalNodeNum+1]} {incr i} {
-if {[array get ndn $selfIndexNum,[expr $i-$notGetDigestNomalNum]] == []} {
-continue
-}
-set nomalNodeList($i) $ndn($selfIndexNum,[expr $i-$notGetDigestNomalNum])
-}
-# 適当な回数リストの中身をシャッフル
-set temp ""
-for {set i 0} {$i < 100 } {incr i} {
-set randomNum1 [expr int(($nomalNodeNum)*rand())]
-set randomNum2 [expr int(($nomalNodeNum)*rand())]
-set temp $nomalNodeList($randomNum1)
-set $nomalNodeList($randomNum1) $nomalNodeList($randomNum2)
-set $nomalNodeList($randomNum2) $temp
-}
-set connectNomalNum [expr int(ceil($nomalNodeNum*$connectNomalNodeRate))]
-# ノーマルノード同士：０→１　０→２　０→３　０→４、１→２　１→３...１４→１５　１４→０　１４→１　１４→２
-for {set i 0} {$i < [expr $nomalNodeNum+1]} {incr i} {
-for {set j 0} {$j < $connectNomalNum} {incr j} {
-if { [expr $i+$j+1] >= $nomalNodeNum } {
-if {[array get nomalNodeList $i] == []} {
-continue
-}
-set bandwidth [returnLowBandwidth bl $nomalNodeList($i) $nomalNodeList([expr $i+$j+1-$nomalNodeNum])]
-$ns duplex-link $nomalNodeList($i) $nomalNodeList([expr $i+$j+1-$nomalNodeNum]) [expr $bandwidth]Mb 100ms DropTail
-} else {
-set bandwidth [returnLowBandwidth bl $nomalNodeList($i) $nomalNodeList([expr $i+$j+1])]
-$ns duplex-link $nomalNodeList($i) $nomalNodeList([expr $i+$j+1]) [expr $bandwidth]Mb 100ms DropTail
-}
-}
-}
-# 配信者ノード
-$ns duplex-link $nomalNodeList(0) $rootNode $bl($nomalNodeList(0))Mb 500ms DropTail
+    upvar $nomalDigestNode ndn $nomalNotDigestNode nndn $bandwidthList bl
+    # とりあえずリストに全部入れる
+    for {set i 0} {$i < [expr $nomalNodeNum+1]} {incr i} {
+        if {[array get ndn $selfIndexNum,[expr $i-$notGetDigestNomalNum]] == []} {
+            continue
+        }
+        set nomalNodeList($i) $ndn($selfIndexNum,[expr $i-$notGetDigestNomalNum])
+    }
+    # 適当な回数リストの中身をシャッフル
+    set temp ""
+    for {set i 0} {$i < 100 } {incr i} {
+        set randomNum1 [expr int(($nomalNodeNum)*rand())]
+        set randomNum2 [expr int(($nomalNodeNum)*rand())]
+        set temp $nomalNodeList($randomNum1)
+        set $nomalNodeList($randomNum1) $nomalNodeList($randomNum2)
+        set $nomalNodeList($randomNum2) $temp
+    }
+    set connectNomalNum [expr int(ceil($nomalNodeNum*$connectNomalNodeRate))]
+    # ノーマルノード同士：０→１　０→２　０→３　０→４、１→２　１→３...１４→１５　１４→０　１４→１　１４→２
+    for {set i 0} {$i < [expr $nomalNodeNum+1]} {incr i} {
+        for {set j 0} {$j < $connectNomalNum} {incr j} {
+            if { [expr $i+$j+1] >= $nomalNodeNum } {
+                if {[array get nomalNodeList $i] == []} {
+                    continue
+                }
+                set bandwidth [returnLowBandwidth bl $nomalNodeList($i) $nomalNodeList([expr $i+$j+1-$nomalNodeNum])]
+                $ns duplex-link $nomalNodeList($i) $nomalNodeList([expr $i+$j+1-$nomalNodeNum]) [expr $bandwidth]Mb 100ms DropTail
+            } else {
+                set bandwidth [returnLowBandwidth bl $nomalNodeList($i) $nomalNodeList([expr $i+$j+1])]
+                $ns duplex-link $nomalNodeList($i) $nomalNodeList([expr $i+$j+1]) [expr $bandwidth]Mb 100ms DropTail
+            }
+        }
+    }
+    # 配信者ノード
+    $ns duplex-link $nomalNodeList(0) $rootNode $bl($nomalNodeList(0))Mb 500ms DropTail
 }
 #Define a 'finish' procedure
 proc finish {} {
-global ns f gCount sfile userNum
-$ns flush-trace
-set awkCode {
-{
-if ($8 == 3000) {
-if ($2 >= t_end_tcp) {
-tput_tcp = bytes_tcp * 8 / ($2 - t_start_tcp)/1000;
-print $2, tput_tcp >> "tput-tcp.tr";
-t_start_tcp = $2;
-t_end_tcp = $2 + 2;
-bytes_tcp = 0;
-}
-if ($1 == "r") {
-bytes_tcp += $6;
-}
-}
-else if ($8 == 3001) {
-if ($2 >= t_end_udp) {
-tput_udp = bytes_udp * 8 / ($2 - t_start_udp)/1000;
-print $2, tput_udp >> "tput-udp.tr";
-t_start_udp = $2;
-t_end_udp = $2 + 2;
-bytes_udp = 0;
-}
-if ($1 == "r") {
-bytes_udp += $6;
-}
-}
-}
-}
-for {set i 0} {$i < $gCount} {incr i} {
-if { [info exists sfile($i)] } {
-close $sfile($i)
-}
-}
-close $f
-exec rm -f tput-tcp.tr tput-udp.tr
-exec touch tput-tcp.tr tput-udp.tr
-exec awk $awkCode out.tr
-exec xgraph -bb -tk -m -x Seconds -y "Throughput (kbps)" tput-tcp.tr tput-udp.tr &
-exec nam out.nam
-exec cp out.nam [append outNamName "out" $userNum "-no-roll.nam"]
-exec cp out.tr [append outTrName "out" $userNum "-no-roll.tr"]
-exec cp tput-tcp.tr [append tputTcpName "tput-tcp" $userNum "-no-roll.tr"]
-exec cp tput-udp.tr [append tputUdpName "tput-udp" $userNum "-no-roll.tr"]
-exit 0
+    global ns f gCount sfile userNum nodeList rootNode
+    $ns flush-trace
+    set awkCode {
+        {
+            if ($8 == 3000) {
+                if ($2 >= t_end_tcp) {
+                    tput_tcp = bytes_tcp * 8 / ($2 - t_start_tcp)/1000;
+                    print $2, tput_tcp >> "tput-tcp.tr";
+                    t_start_tcp = $2;
+                    t_end_tcp = $2 + 2;
+                    bytes_tcp = 0;
+                }
+                if ($1 == "r") {
+                    bytes_tcp += $6;
+                }
+            }
+            else if ($8 == 3001) {
+                if ($2 >= t_end_udp) {
+                    tput_udp = bytes_udp * 8 / ($2 - t_start_udp)/1000;
+                    print $2, tput_udp >> "tput-udp.tr";
+                    t_start_udp = $2;
+                    t_end_udp = $2 + 2;
+                    bytes_udp = 0;
+                }
+                if ($1 == "r") {
+                    bytes_udp += $6;
+                }
+            }
+        }
+    }
+    for {set i 0} {$i < $gCount} {incr i} {
+        if { [info exists sfile($i)] } {
+            close $sfile($i)
+        }
+    }
+    close $f
+
+    calcHopCount nodeList $ns $rootNode
+
+    exec rm -f tput-tcp.tr tput-udp.tr
+    exec touch tput-tcp.tr tput-udp.tr
+    exec awk $awkCode out.tr
+    exec xgraph -bb -tk -m -x Seconds -y "Throughput (kbps)" tput-tcp.tr tput-udp.tr &
+    exec nam out.nam
+    exec cp out.nam [append outNamName "out" $userNum "-no-roll.nam"]
+    exec cp out.tr [append outTrName "out" $userNum "-no-roll.tr"]
+    exec cp tput-tcp.tr [append tputTcpName "tput-tcp" $userNum "-no-roll.tr"]
+    exec cp tput-udp.tr [append tputUdpName "tput-udp" $userNum "-no-roll.tr"]
+    exit 0
 }
 ## 処理開始
 setPacketColor $ns
@@ -191,13 +194,13 @@ $ns namtrace-all $nf
 copy temporalBandwidthList bandwidthList
 # クラスタの数実行
 for {set i 0} {$i < $clusterNum} {incr i} {
-connectNomalNode nomalDigestNode nomalNotDigestNode bandwidthList $rootNode $ns $clusterNum $connectNomalNodeRate $notGetDigestNomalNum $getDigestNomalNum $nomalNodeNum $i
+    connectNomalNode nomalDigestNode nomalNotDigestNode bandwidthList $rootNode $ns $clusterNum $connectNomalNodeRate $notGetDigestNomalNum $getDigestNomalNum $nomalNodeNum $i
 }
 createNomalNodeStream nomalDigestNode nomalNotDigestNode digestNode goddard gplayer sfile gCount $rootNode $ns $clusterNum $getDigestNomalNum $notGetDigestNomalNum $digestNodeNum
 # Scehdule Simulation
 for {set i 0} {$i < $gCount} {incr i} {
-$ns at 0 "$goddard($i) start"
-$ns at 240.0 "$goddard($i) stop"
+    $ns at 0 "$goddard($i) start"
+    $ns at 240.0 "$goddard($i) stop"
 }
 $ns at 240.0 "finish"
 $ns run

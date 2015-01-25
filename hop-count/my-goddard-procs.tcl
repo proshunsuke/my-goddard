@@ -153,3 +153,26 @@ proc createNomalNodeStream {nomalDigestNode nomalNotDigestNode digestNode goddar
         }
     }
 }
+
+proc calcHopCount {nodeList ns rootNode} {
+    upvar $nodeList nl
+
+    set count 0
+
+    foreach {key val} [array get nl] {
+        $ns compute-routes
+        set rlobject [$ns get-routelogic]
+        set src [$rootNode id]
+        set dst [$val id]
+        puts $val
+        while {$src != $dst} {
+            set src [$rlobject lookup $src $dst]
+            incr count
+        }
+        puts $count
+    }
+
+    puts "集計終了カウント：$count"
+    puts "平均ホップ数: [expr $count / [array size nl]]"
+}
+

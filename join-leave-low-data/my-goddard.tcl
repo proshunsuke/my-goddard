@@ -881,8 +881,6 @@ for {set i 0} {$i < $clusterNum} {incr i} {
     connectReplaceGateNodeInCluster gateNode semiGateNode replaceGateNode bandwidthList $rootNode $ns $gateNodeNum $clusterNum $i
 }
 
-
-
 # クラスタ外部接続(ゲートノードの数実行)
 for {set i 0} {$i < $gateNodeNum} {incr i} {
     # connectGateNodeOutside gateNode bandwidthList ns $clusterNum $gateNodeNum $i

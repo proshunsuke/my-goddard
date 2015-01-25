@@ -266,31 +266,6 @@ proc connectNomalNode {nomalDigestNode nomalNotDigestNode bandwidthList ns clust
     }
 }
 
-proc calcHopCount {nodeList ns rootNode} {
-    upvar $nodeList nl
-
-    # サンプル
-    # gate_node(0)からgate_node(2)まで経由したノードのIDを出力する
-
-    set count 0
-
-    foreach {key val} [array get nl] {
-        $ns compute-routes
-        set rlobject [$ns get-routelogic]
-        set src [$rootNode id]
-        set dst [$val id]
-        puts $val
-        while {$src != $dst} {
-            set src [$rlobject lookup $src $dst]
-            incr count
-        }
-        puts $count
-    }
-
-    puts "集計終了カウント：$count"
-    puts "平均ホップ数: [expr $count / [array size nl]]"
-}
-
 #Define a 'finish' procedure
 proc finish {} {
     global ns f gCount sfile userNum nodeList rootNode
@@ -335,7 +310,6 @@ proc finish {} {
     close $f
 
     calcHopCount nodeList $ns $rootNode
-
 
     exec rm -f tput-tcp.tr tput-udp.tr
     exec touch tput-tcp.tr tput-udp.tr
