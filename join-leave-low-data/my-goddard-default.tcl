@@ -1,12 +1,7 @@
-#Set random seed
-global defaultRNG
-$defaultRNG seed 15
-
 # 実験時間
 set finishTime 60.0
 
 # 帯域幅割合
-# デフォルト
 array set bandwidthRatio {
     3.000 4
     1.500 1

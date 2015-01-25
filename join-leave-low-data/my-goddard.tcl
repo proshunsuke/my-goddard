@@ -8,7 +8,6 @@ source my-goddard-default.tcl
 source my-goddard-procs.tcl
 
 # 入力値(ユーザ数は必ず200の倍数)
-# set userNum [lindex $argv 0]
 set userNum 28
 
 # ユーザ数に応じて変化
@@ -485,7 +484,6 @@ proc connectReplaceGateNodeOutside {gateNode replaceGateNode bandwidthList nsArg
 }
 
 # 代わりのセミゲートノード
-
 proc replaceSemiGateNodeBandwitdhSetting {nomalDigestNode replaceSemiGateNode sortedBandwidthList bandwidthList clusterNum} {
     upvar $nomalDigestNode ndn $replaceSemiGateNode rsgn $sortedBandwidthList sbl $bandwidthList bl
 
@@ -535,7 +533,6 @@ proc connectReplaceSemiGateNode {semiGateNode digestNode nomalDigestNode nomalNo
 }
 
 # 代わりのダイジェストノード
-
 proc replaceDigestNodeBandwitdhSetting {nomalDigestNode replaceDigestNode commentList bandwidthList clusterNum} {
     upvar $nomalDigestNode ndn $replaceDigestNode rdn $commentList cl $bandwidthList bl
     set i 0
@@ -731,8 +728,6 @@ proc leaveNode {nodeList joinNodeList replaceGateNodeList replaceSemiGateNodeLis
         }
     }
 
-    parray list
-
     set k 0
     set leaveTime [expr $startTime + 0.02]
     while {$leaveTime < $finishTime} {
@@ -773,19 +768,7 @@ proc finish {} {
 
     set awkCode {
         {
-            if ($8 == 3000) {
-                if ($2 >= t_end_tcp) {
-                    tput_tcp = bytes_tcp * 8 / ($2 - t_start_tcp)/1000;
-                    print $2, tput_tcp >> "tput-tcp.tr";
-                    t_start_tcp = $2;
-                    t_end_tcp   = $2 + 2;
-                    bytes_tcp = 0;
-                }
-                if ($1 == "r") {
-                    bytes_tcp += $6;
-                }
-            }
-            else if ($5 == "cbr") {
+            if ($5 == "cbr") {
                 if ($2 >= t_end_udp) {
                     tput_udp = bytes_udp * 8 / ($2 - t_start_udp)/1000;
                     print $2, tput_udp >> "tput-udp.tr";
@@ -810,7 +793,6 @@ proc finish {} {
     exec touch tput-tcp.tr tput-udp.tr
     exec awk $awkCode out.tr
     exec cp out.tr [append outTrName "out" $userNum ".tr"]
-    # exec cp tput-tcp.tr [append tputTcpName "tput-tcp" $userNum ".tr"]
     exec cp tput-udp.tr [append tputUdpName "tput-udp" $userNum ".tr"]
     exec xgraph -bb -tk -m -x Seconds -y "Throughput (kbps)" tput-udp.tr &
     exec nam out.nam &
@@ -820,7 +802,6 @@ proc finish {} {
 ## 処理開始
 
 setPacketColor $ns
-# setClusterNum clusterNum $userNum
 set clusterNum 1
 setNodeNum digestNodeNum gateNodeNum semiGateNodeNum nomalNodeNum notGetDigestNomalNum getDigestNomalNum joinNodeNum $userNum $clusterNum $digestUserRate $gateCommentRate $semiGateCommentRate $gateCommentRate $semiGateNodeNum $notGetDigestRate $finishTime
 
@@ -877,40 +858,34 @@ for {set i 0} {$i < $clusterNum} {incr i} {
     connectNomalNode nomalDigestNode nomalNotDigestNode bandwidthList $ns $clusterNum $connectNomalNodeRate $notGetDigestNomalNum $getDigestNomalNum $nomalNodeNum $i
     connectJoinNode joinNode nomalDigestNode nomalNotDigestNode bandwidthList $ns $clusterNum $joinNodeNum $nomalNodeNum $i
 
-    # 代わり
+    # 代わりゲートのノード接続
     connectReplaceGateNodeInCluster gateNode semiGateNode replaceGateNode bandwidthList $rootNode $ns $gateNodeNum $clusterNum $i
 }
 
-# クラスタ外部接続(ゲートノードの数実行)
-for {set i 0} {$i < $gateNodeNum} {incr i} {
-    # connectGateNodeOutside gateNode bandwidthList ns $clusterNum $gateNodeNum $i
-
-    # 代わり
-    # connectReplaceGateNodeOutside gateNode replaceGateNode bandwidthList ns $clusterNum $gateNodeNum $i
-}
-
-# 代わり
+# 代わりのセミゲートノードの帯域幅設定
 replaceSemiGateNodeBandwitdhSetting nomalDigestNode replaceSemiGateNode sortedBandwidthList bandwidthList $clusterNum
+
+# 代わりのダイジェストノードの帯域幅設定
 replaceDigestNodeBandwitdhSetting nomalDigestNode replaceDigestNode commentList bandwidthList $clusterNum
-# クラスタ内部接続(クラスタの数実行, 代わり)
+
+# クラスタ内部接続(クラスタの数実行, 代わりのセミゲートノードと代わりのダイジェストノード)
 for {set i 0} {$i < $clusterNum} {incr i} {
     connectReplaceSemiGateNode semiGateNode digestNode nomalDigestNode nomalNotDigestNode replaceSemiGateNode bandwidthList $ns $clusterNum $semiGateNodeNum $notGetDigestNomalNum $getDigestNomalNum $i
     connectReplaceDigestNode digestNode nomalNotDigestNode replaceDigestNode bandwidthList $ns $notGetDigestNomalNum $getDigestNomalNum $digestNodeNum $i
 }
 
-# udp
+# udp通信
 UDPStreamInit mproto mrthandle group udp cbr rcvr sfile $ns $rootNode
-
 attachInit nodeList joinNodeList replaceGateNodeList replaceSemiGateNodeList replaceDigestNodeList startTime $ns $rcvr $group
 
-# test
+# 終了時間設定
 set finishTime [expr $startTime + $finishTime]
 
+# 新規参加ノード設定
 newJoin joinNodeList $ns $rcvr $group $startTime $finishTime $joinLeaveInterval
 
+# 離脱ノード設定
 leaveNode nodeList joinNodeList replaceGateNodeList replaceSemiGateNodeList replaceDigestNodeList gateNodeTypeList semiGateNodeTypeList digestNodeTypeList gateToReplaceList semiGateToReplaceList digestToReplaceList gateToSemiGateList commentList $startTime $finishTime $joinLeaveInterval $ns $rcvr $group
-
-parray digestNodeTypeList
 
 $ns at $startTime "$cbr start"
 

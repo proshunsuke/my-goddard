@@ -36,21 +36,6 @@ proc setPacketColor { ns } {
     $ns color 2 white
 }
 
-# ノードの設定
-
-proc setClusterNum {clusterNumArg userNum} {
-    upvar $clusterNumArg clusterNum
-    if {$userNum == 200} {
-        set clusterNum 7
-    } elseif {$userNum == 400} {
-        set clusterNum 10
-    } elseif {$userNum == 600} {
-        set clusterNum 14
-    } elseif {$userNum == 800} {
-        set clusterNum 18
-    }
-}
-
 proc setNodeNum {digestNodeNum gateNodeNum semiGateNodeNum nomalNodeNum notGetDigestNomalNum getDigestNomalNum joinNodeNum userNum clusterNum digestUserRate gateCommentRate semiGateCommentRate gateCommentRate semiGateNodeNum notGetDigestRate finishTime} {
     upvar $digestNodeNum dnn $gateNodeNum gnn $semiGateNodeNum sgnn $nomalNodeNum nnn $notGetDigestNomalNum ngdn $getDigestNomalNum gdnn $joinNodeNum jnn
     set dnn [expr int(ceil([expr $userNum / $clusterNum * $digestUserRate]))]
@@ -167,43 +152,6 @@ proc sortBandwidthList {sortedBandwidthList bandwidthRatio bandwidthList} {
                 set sbl($k) $index
                 incr k
             }
-        }
-    }
-}
-
-# Setup Goddard Streaming
-
-# goddardストリーミング生成関数
-proc createGoddard { goddard gplayer sfile gCount joinNodeList ns l_node r_node group} {
-    upvar $goddard gd $gplayer gp $sfile sf $gCount gc $joinNodeList jnl
-    set gs($gc) [new GoddardStreaming $ns $l_node $r_node UDP 1000 $gc]
-    set gd($gc) [$gs($gc) getobject goddard]
-    set gp($gc) [$gs($gc) getobject gplayer]
-    $gp($gc) set upscale_interval_ 30.0
-    set sf($gc) [open stream-udp.tr w]
-    $gp($gc) attach $sf($gc)
-
-    $gs($gc) set dst_addr_ $group
-    $gs($gc) set dst_port_ 0
-
-    incr gc
-    return
-}
-
-
-# create goddard
-
-proc createNomalNodeStream {nomalDigestNode nomalNotDigestNode digestNode goddard gplayer sfile gCount joinNodeList rootNode ns clusterNum getDigestNomalNum notGetDigestNomalNum digestNodeNum group} {
-    upvar $nomalDigestNode ndn $nomalNotDigestNode nndn $digestNode dn $goddard gd $gplayer gp $sfile sf $gCount gc $joinNodeList jnl
-    for {set i 0} {$i < $clusterNum} {incr i} {
-        for {set j 0} {$j < $getDigestNomalNum} {incr j} {
-            createGoddard gd gp sf gc jnl $ns $rootNode $ndn($i,$j) $group
-        }
-        for {set j 0} {$j < $notGetDigestNomalNum} {incr j} {
-            createGoddard gd gp sf gc jnl $ns $rootNode $nndn($i,$j) $groupa
-        }
-        for {set j 0} {$j < $digestNodeNum} {incr j} {
-            createGoddard gd gp sf gc jnl $ns $rootNode $dn($i,$j) $group
         }
     }
 }
