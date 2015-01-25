@@ -60,6 +60,9 @@ set gplayer(0) ""
 set sfile(0) ""
 set gCount 0
 
+# 接続数調査のためのリスト
+set connectNumList(0) 0
+
 # my-goddard-no-rollのための関数
 proc nomalNodeInit {nomalDigestNode nomalNotDigestNode sortedBandwidthList clusterNum notGetDigestNomalNum getDigestNomalNum} {
     upvar $nomalDigestNode ndn $nomalNotDigestNode nndn $sortedBandwidthList sbl
@@ -84,8 +87,8 @@ proc nomalNodeInit {nomalDigestNode nomalNotDigestNode sortedBandwidthList clust
     return
 }
 
-proc connectNomalNode {nomalDigestNode nomalNotDigestNode bandwidthList rootNode ns clusterNum connectNomalNodeRate notGetDigestNomalNum getDigestNomalNum nomalNodeNum selfIndexNum } {
-    upvar $nomalDigestNode ndn $nomalNotDigestNode nndn $bandwidthList bl
+proc connectNomalNode {nomalDigestNode nomalNotDigestNode bandwidthList connectNumList rootNode ns clusterNum connectNomalNodeRate notGetDigestNomalNum getDigestNomalNum nomalNodeNum selfIndexNum } {
+    upvar $nomalDigestNode ndn $nomalNotDigestNode nndn $bandwidthList bl $connectNumList cnl
     # とりあえずリストに全部入れる
     for {set i 0} {$i < [expr $nomalNodeNum+1]} {incr i} {
         if {[array get ndn $selfIndexNum,[expr $i-$notGetDigestNomalNum]] == []} {
@@ -112,14 +115,45 @@ proc connectNomalNode {nomalDigestNode nomalNotDigestNode bandwidthList rootNode
                 }
                 set bandwidth [returnLowBandwidth bl $nomalNodeList($i) $nomalNodeList([expr $i+$j+1-$nomalNodeNum])]
                 $ns duplex-link $nomalNodeList($i) $nomalNodeList([expr $i+$j+1-$nomalNodeNum]) [expr $bandwidth]Mb 100ms DropTail
+                countConnectNum cnl $nomalNodeList($i)
+                countConnectNum cnl $nomalNodeList([expr $i+$j+1-$nomalNodeNum])
             } else {
                 set bandwidth [returnLowBandwidth bl $nomalNodeList($i) $nomalNodeList([expr $i+$j+1])]
                 $ns duplex-link $nomalNodeList($i) $nomalNodeList([expr $i+$j+1]) [expr $bandwidth]Mb 100ms DropTail
+                countConnectNum cnl $nomalNodeList($i)
+                countConnectNum cnl $nomalNodeList([expr $i+$j+1])
             }
         }
     }
     # 配信者ノード
     $ns duplex-link $nomalNodeList(0) $rootNode $bl($nomalNodeList(0))Mb 500ms DropTail
+    countConnectNum cnl $nomalNodeList(0)
+}
+
+proc connectNumSearch {connectNumList userNum} {
+    upvar $connectNumList cnl
+    set num 0
+    foreach {key value} [array get cnl *] {
+        if {[array get cncl $value] == []} {
+            set cncl($value) 1
+        } else {
+            set cncl($value) [expr $cncl($value) + 1]
+        }
+        set num [expr $num + $value]
+    }
+    parray cncl
+    append fn "connect-num" $userNum "no-roll.tr"
+    exec rm -f $fn
+    exec touch $fn
+    for {set i 1} { $i < 100} {incr i} {
+        if {[array get cncl $i] != []} {
+            exec echo "$i\t$cncl($i)" >> $fn
+        }
+    }
+
+    puts "$num"
+    set ave [expr double($num. / $userNum.)]
+    puts "平均: $ave"
 }
 
 #Define a 'finish' procedure
@@ -214,12 +248,17 @@ $ns namtrace-all $nf
 # 一時的にノードを削除していたので帯域幅リストを元に戻す
 copy temporalBandwidthList bandwidthList
 
+# 接続数実験用のリストのinit処理
+connectNumListInit nodeList connectNumList
+
 # クラスタの数実行
 for {set i 0} {$i < $clusterNum} {incr i} {
-    connectNomalNode nomalDigestNode nomalNotDigestNode bandwidthList $rootNode $ns $clusterNum $connectNomalNodeRate $notGetDigestNomalNum $getDigestNomalNum $nomalNodeNum $i
+    connectNomalNode nomalDigestNode nomalNotDigestNode bandwidthList connectNumList $rootNode $ns $clusterNum $connectNomalNodeRate $notGetDigestNomalNum $getDigestNomalNum $nomalNodeNum $i
 }
 
 createNomalNodeStream nomalDigestNode nomalNotDigestNode digestNode goddard gplayer sfile gCount $rootNode $ns $clusterNum $getDigestNomalNum $notGetDigestNomalNum $digestNodeNum
+
+connectNumSearch connectNumList $userNum
 
 # Scehdule Simulation
 for {set i 0} {$i < $gCount} {incr i} {

@@ -167,3 +167,16 @@ proc createNomalNodeStream {nomalDigestNode nomalNotDigestNode digestNode goddar
         }
     }
 }
+
+proc connectNumListInit {nodeList connectNumList} {
+    upvar $nodeList nl $connectNumList cnl
+    foreach {key value} [array get nl *] {
+        set cnl($value) 0
+    }
+}
+
+proc countConnectNum {connectNumList node} {
+    upvar $connectNumList cnl
+    set cnl($node) [expr $cnl($node) + 1]
+}
+
