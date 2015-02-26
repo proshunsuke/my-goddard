@@ -1,5 +1,5 @@
-file_path="/home/shunsuke/Downloads/ns2/new-ns-2.35/ns-allinone-2.35/ns-2.35/tcl/goddard/ex/my-goddard/connect-num"
-img_path="/home/shunsuke/Downloads/ns2/new-ns-2.35/ns-allinone-2.35/ns-2.35/tcl/goddard/ex/my-goddard/connect-num/imgs"
+file_path="/home/shunsuke/Downloads/ns2/new-ns-2.35/ns-allinone-2.35/ns-2.35/tcl/goddard/ex/my-goddard/delay"
+img_path="/home/shunsuke/Downloads/ns2/new-ns-2.35/ns-allinone-2.35/ns-2.35/tcl/goddard/ex/my-goddard/delay/imgs"
 ns="/home/shunsuke/Downloads/ns2/new-ns-2.35/ns-allinone-2.35/bin/ns"
 my-goddard:
 	cd $(file_path)
@@ -75,18 +75,6 @@ gnuplot-average-hop-count:
 	gnuplot average-hop-count.plt
 	cp average-hop-count.eps fig19.eps
 	cp fig19.eps $(img_path)
-gnuplot-average-connect-num:
-	gnuplot connect-num-average-compare.plt
-	cp connect-num-average-compare.eps fig20.eps
-	cp fig20.eps $(img_path)
-gnuplot-connect-num:
-	gnuplot connect-num.plt
-	cp connect-num.eps fig21.eps
-	cp fig21.eps $(img_path)
-gnuplot-connect-num-no-roll:
-	gnuplot connect-num-no-roll.plt
-	cp connect-num-no-roll.eps fig22.eps
-	cp fig22.eps $(img_path)
 gnuplot-all:
 	make gnuplot-comment
 	make gnuplot-udp
